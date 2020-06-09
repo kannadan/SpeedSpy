@@ -37,7 +37,3 @@ def parsePB(pbs, userid):
     return parsedList
 
 if __name__ == "__main__":
-    user = getUser('kannadan')
-    bests = getBest(user)
-    pb = parsePB(bests, user["id"])
-    print(pb)

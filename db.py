@@ -1,6 +1,4 @@
 import sqlite3
-import speedrun
-
 
 def connectdb():
     return sqlite3.connect('speedrunners.db')
@@ -177,16 +175,3 @@ def getAllWhite():
         conn.close()
 
 if __name__ == "__main__":
-    createTables()
-    user = speedrun.getUser("kannadan")
-    bests = speedrun.getBest(user)
-    pb = speedrun.parsePB(bests, user["id"])
-    insertWhitelist("kj9we9w8", "kannadan")
-    insertBlacklist("kannadaaan")
-    #for run in pb:
-    #    insertrun(conn.cursor(), run)
-    print(getUserruns(user["id"])[0][0])
-    print(getUser("kannadan")[0][0])
-    print(len(getUser("kannadan")[0]))
-    deleterun("znrxp87y")
-    print(getUserName("kj9we9w8"))
