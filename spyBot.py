@@ -32,7 +32,7 @@ def checkMember(member):
 
 async def backgroundUpdateTask():
     await bot.wait_until_ready()
-    await asyncio.sleep(120)
+    await asyncio.sleep(3600)
     while not bot.is_closed():
         try:
             print("Background update")
@@ -40,10 +40,10 @@ async def backgroundUpdateTask():
             for user in users:
                 updateMember(user[1])
             print("update done")
-            await asyncio.sleep(30)
+            await asyncio.sleep(7200)
         except Exception as e:
             print(str(e))
-            await asyncio.sleep(30)
+            await asyncio.sleep(7200)
 
 
 
@@ -123,6 +123,9 @@ async def sendRankings(ctx, name: str = ""):
     if name:
         users = db.getUser(name)
     else:
+        if ctx.message.author.id != OWNER:
+            await ctx.send("Needs a name")
+            return
         users = db.getAllWhite()
         await ctx.send("This might take a while")
     if not users or len(users[0]) == 1:
@@ -134,6 +137,9 @@ async def sendRankings(ctx, name: str = ""):
         runs = db.getUserruns(user[0])
         for run in runs:
             msg = msg + "> Rank {} on {} {}\n".format(run[2], run[3], run[4])
+            if len(msg) > 1700:
+                await ctx.send(msg)
+                msg = ""
     if msg != "":
         await ctx.send(msg)
 
