@@ -58,8 +58,7 @@ def updateMember(name):
             for run in pb:
                 if run["runid"] not in oldids:
                     for oldrun in old:
-                        if oldrun[3] == run["game"] and oldrun[4] == run["category"] and \
-                                    oldrun[2] > run["place"]:
+                        if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
                             db.deleterun(oldrun[0])
                     db.insertrun(run)
                     loop.create_task(announceRun(run))
@@ -89,12 +88,13 @@ async def on_ready():
     print("guild has {} members\n".format(guild.member_count))
     print("Checking speedrun.com")
     db.createTables()
+    print("{}/{} members verified".format(count, users))
     for member in guild.members:
-        if count % 10 == 0:
-            print("{}/{} members verified".format(count, users))
-            #await asyncio.sleep(10)
         checkMember(member)
         count += 1
+        if count % 10 == 0:
+            print("{}/{} members verified".format(count, users))
+            await asyncio.sleep(10)
     print("{}/{} members verified".format(count, users))
 
 @bot.event

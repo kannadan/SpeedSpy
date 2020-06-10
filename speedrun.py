@@ -3,6 +3,7 @@ from urllib.request import urlopen
 
 usersUrl = 'https://www.speedrun.com/api/v1/users?name='
 gamesUrl = 'https://www.speedrun.com/api/v1/games/'
+categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 
 def getUser(username):
     user = json.load(urlopen(usersUrl + username))
@@ -32,7 +33,14 @@ def parsePB(pbs, userid):
         result["game"] = game["data"]["names"]["international"]
         categories = json.load(urlopen(gamesUrl + a["run"]["game"] + "/categories"))
         category = next((item for item in categories["data"] if item["id"] == a["run"]["category"]), None)
-        result["category"] = category["name"]
+        ctext = category["name"]
+        if a["run"]["values"]:
+            variables = json.load(urlopen(categoryUrl + a["run"]["category"] + "/variables"))
+            for d in variables["data"]:
+                if d["is-subcategory"]:
+                    ctext = ctext + ", " + d["values"]["values"][a["run"]["values"][d["id"]]]["label"]  #this json is nightmarish. d ->value->value->a variable id -> that id's label
+
+        result["category"] = ctext
         parsedList.append(result)
     return parsedList
 
