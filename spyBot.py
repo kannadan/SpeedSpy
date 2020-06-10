@@ -143,8 +143,9 @@ async def sendRankings(ctx, name: str = ""):
         return
     msg = ""
     for user in users:
-        msg = msg + "**{}**\n".format(user[1])
         runs = db.getUserruns(user[0])
+        if runs:
+            msg = msg + "**{}**\n".format(user[1])
         for run in runs:
             msg = msg + "> Rank {} on {} {}\n".format(run[2], run[3], run[4])
             if len(msg) > 1700:
