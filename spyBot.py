@@ -62,13 +62,22 @@ def updateMember(name):
                             db.deleterun(oldrun[0])
                     db.insertrun(run)
                     loop.create_task(announceRun(run))
+                else:
+                    for oldrun in old:
+                        if oldrun[0] == run["runid"] and oldrun[2] != run["place"]:
+                            db.updaterun(run)
+                            loop.create_task(announceDrop(run))
+                            break
 
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
     name = db.getUserName(run["userid"])
     await channel.send('{} is now rank {} in {} {}'.format(name, run["place"], run["game"], run["category"]))
 
-
+async def announceDrop(run):
+    channel = bot.get_channel(CHANNEL)
+    name = db.getUserName(run["userid"])
+    await channel.send('{} has dropped to rank {} in {} {}'.format(name, run["place"], run["game"], run["category"]))
 
 #client = discord.Client()
 bot = commands.Bot(command_prefix='!')
@@ -178,6 +187,7 @@ async def unfollow(ctx, name : str = ""):
     else:
         user = db.getUser(name)
         db.deleteWhite(user[0][0])
+        db.insertBlacklist(user[0][1])
         runs = db.getUserruns(user[0][0])
         for run in runs:
             db.deleterun(run[0])

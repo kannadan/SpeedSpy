@@ -62,6 +62,19 @@ def insertrun(run):
         conn.commit()
         conn.close()
 
+def updaterun(run):
+    conn = connectdb()
+    cur = conn.cursor()
+    try:
+        cur.execute(""" UPDATE runs
+                        SET place = ?
+                        WHERE runid=?; """, (run["place"], run["runid"]))
+    except Exception as e:
+        print("Exception in _query: %s" % e)
+    if conn:
+        conn.commit()
+        conn.close()
+
 def deleterun(runid):
     conn = connectdb()
     cur = conn.cursor()
