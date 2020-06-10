@@ -18,6 +18,7 @@ def checkMember(member):
         name = member.nick
     else:
         name = member.name
+    name = name.replace(" ", "")
     if not db.getUser(name):
         user = speedrun.getUser(name)
         if user:
@@ -80,7 +81,7 @@ async def announceDrop(run):
     await channel.send('{} has dropped to rank {} in {} {}'.format(name, run["place"], run["game"], run["category"]))
 
 #client = discord.Client()
-bot = commands.Bot(command_prefix='!')
+bot = commands.Bot(command_prefix='/')
 
 @bot.event
 async def on_ready():
@@ -127,7 +128,7 @@ async def checkUpdates(ctx):
         updateMember(user[1])
     print("update done")
 
-@bot.command(name='runlist', help='!runlist <name>: lists all runs that person has. No name will list all runs on server')
+@bot.command(name='runlist', help='/runlist <name>: lists all runs that person has. No name will list all runs on server')
 async def sendRankings(ctx, name: str = ""):
     if name:
         users = db.getUser(name)
@@ -152,7 +153,7 @@ async def sendRankings(ctx, name: str = ""):
     if msg != "":
         await ctx.send(msg)
 
-@bot.command(name='follow', help='!follow <name> adds that name to be followed on speedrun.com')
+@bot.command(name='follow', help='/follow <name> adds that name to be followed on speedrun.com')
 async def follow(ctx, name : str = ""):
     if not name:
         await ctx.send("You need to give a name")
@@ -175,7 +176,7 @@ async def follow(ctx, name : str = ""):
     else:
         await ctx.send("Already following {}".format(name))
 
-@bot.command(name='unfollow', help='!unfollow <name> will stop following that guy')
+@bot.command(name='unfollow', help='/unfollow <name> will stop following that guy')
 async def unfollow(ctx, name : str = ""):
     if not name:
         await ctx.send("You need to give a name")
