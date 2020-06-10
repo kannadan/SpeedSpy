@@ -1,7 +1,7 @@
 import json
 from urllib.request import urlopen
 
-usersUrl = 'https://www.speedrun.com/api/v1/users?name='
+usersUrl = 'https://www.speedrun.com/api/v1/users?max=200&name='
 gamesUrl = 'https://www.speedrun.com/api/v1/games/'
 categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 
@@ -17,6 +17,7 @@ def getUser(username):
             for u in user["data"]:
                 if username.lower() == u["names"]["international"].lower():
                     return u
+
         else:
             return user["data"][0]
     return None
