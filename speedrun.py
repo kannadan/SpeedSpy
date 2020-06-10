@@ -8,7 +8,7 @@ categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 def getUser(username):
     try:
         user = json.load(urlopen(usersUrl + username))
-    except UnicodeEncodeError e:
+    except UnicodeEncodeError as e:
         print("Unicode error")
         return None
     #print(user["data"][0]["id"])
