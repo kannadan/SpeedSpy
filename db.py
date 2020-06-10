@@ -14,11 +14,12 @@ def createTables():
                    name TEXT PRIMARY KEY);
                 """)
     cur.execute("""CREATE TABLE IF NOT EXISTS runs(
-                   runid TEXT PRIMARY KEY,
-                   userid TEXT,
+                   runid TEXT NOT NULL,
+                   userid TEXT NOT NULL,
                    place INT,
                    game TEXT,
-                   category TEXT);
+                   category TEXT,
+                   PRIMARY KEY(runid, userid));
                 """)
     conn.commit()
     conn.close()
