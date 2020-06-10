@@ -6,7 +6,11 @@ gamesUrl = 'https://www.speedrun.com/api/v1/games/'
 categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 
 def getUser(username):
-    user = json.load(urlopen(usersUrl + username))
+    try:
+        user = json.load(urlopen(usersUrl + username))
+    except UnicodeEncodeError e:
+        print("Unicode error")
+        return None
     #print(user["data"][0]["id"])
     if user["data"]:
         if user["pagination"]["size"] != 1:
