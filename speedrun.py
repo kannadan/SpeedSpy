@@ -48,6 +48,7 @@ def parsePB(pbs, userid):
         lbData = getLeaderboardData(result["gameid"], catData["id"], catData["subs"])
         result["totalruns"] = lbData["total"]
         result["wr"] = lbData["wr"]
+        result["link"] = a["run"]["weblink"]
         parsedList.append(result)
     return parsedList
 

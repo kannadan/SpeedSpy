@@ -75,7 +75,7 @@ def updateMember(name, shout=True):
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
     name = db.getUserName(run["userid"])
-    await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"]))
+    await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
 
 async def announceChange(run, change):
     channel = bot.get_channel(CHANNEL)

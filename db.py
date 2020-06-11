@@ -25,6 +25,7 @@ def createTables():
                    gameid TEXT,
                    runners INT,
                    wr TEXT,
+                   link TEXT,
                    PRIMARY KEY(runid, userid));
                 """)
     conn.commit()
@@ -75,16 +76,17 @@ def insertrun(run):
             catid       id of main category
             subCats     ids of subcategories in format <sub categoryid>=<sub category choice>, ...
             gameid      id of game
+            links       link to run
     """
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr)
-                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link)
+                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
                                 (run["runid"], run["userid"], run["place"],
                                  run["game"], run["category"], run["time"],
                                  run["catid"], run["subCats"], run["gameid"],
-                                 run["totalruns"], run["wr"]))
+                                 run["totalruns"], run["wr"], run["link"]))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
