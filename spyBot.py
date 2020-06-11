@@ -48,7 +48,7 @@ async def backgroundUpdateTask():
 
 
 
-def updateMember(name):
+def updateMember(name, shout=True):
     user = speedrun.getUser(name)
     if user:
         bests = speedrun.getBest(user)
@@ -62,23 +62,28 @@ def updateMember(name):
                         if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
                             db.deleterun(oldrun[0])
                     db.insertrun(run)
-                    loop.create_task(announceRun(run))
+                    if shout:
+                        loop.create_task(announceRun(run))
                 else:
                     for oldrun in old:
                         if oldrun[0] == run["runid"] and oldrun[2] != run["place"]:
                             db.updaterun(run)
-                            loop.create_task(announceDrop(run))
+                            if shout:
+                                loop.create_task(announceChange(run, oldrun[2] - run["place"]))
                             break
 
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
     name = db.getUserName(run["userid"])
-    await channel.send('{} is now rank {} in {} {}'.format(name, run["place"], run["game"], run["category"]))
+    await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"]))
 
-async def announceDrop(run):
+async def announceChange(run, change):
     channel = bot.get_channel(CHANNEL)
     name = db.getUserName(run["userid"])
-    await channel.send('{} has dropped to rank {} in {} {}'.format(name, run["place"], run["game"], run["category"]))
+    if change > 0:
+        await channel.send('{} has risen to rank {}/{} in {} {}'.format(name, run["place"], run["totalruns"], run["game"], run["category"]))
+    else:
+        await channel.send('{} has dropped to rank {}/{} in {} {}'.format(name, run["place"], run["totalruns"], run["game"], run["category"]))
 
 #client = discord.Client()
 bot = commands.Bot(command_prefix='/')
@@ -128,6 +133,20 @@ async def checkUpdates(ctx):
         updateMember(user[1])
     print("update done")
 
+@bot.command(name='drop_table', help='Drops all runs and fetches again. Will not shout')
+async def renewRuns(ctx):
+    if ctx.message.author.id == OWNER:
+        print("Run update")
+        users = db.getAllWhite()
+        db.dropRuns()
+        db.createTables()
+        await ctx.send("Will reacquire runs")
+        for user in users:
+            updateMember(user[1], False)
+        print("update done")
+    else:
+        await ctx.send("You don't have rights for this function")
+
 @bot.command(name='runlist', help='/runlist <name>: lists all runs that person has. No name will list all runs on server')
 async def sendRankings(ctx, name: str = ""):
     if name:
@@ -139,7 +158,7 @@ async def sendRankings(ctx, name: str = ""):
         users = db.getAllWhite()
         await ctx.send("This might take a while")
     if not users or len(users[0]) == 1:
-        await ctx.send("No runs on such user")
+        await ctx.send("I do not know this user. Try /follow <name> to add user to followed")
         return
     msg = ""
     for user in users:
@@ -147,7 +166,8 @@ async def sendRankings(ctx, name: str = ""):
         if runs:
             msg = msg + "**{}**\n".format(user[1])
         for run in runs:
-            msg = msg + "> Rank {} on {} {}\n".format(run[2], run[3], run[4])
+            #msg = msg + "> Rank {}/{}, ({}) on {} {}\n> WR {}\n".format(run[2], run[9], run[5], run[3], run[4], run[10])
+            msg = msg + "> {} {}\n> \tRank {}/{}, ({})\n> \tWR {}\n".format(run[3], run[4], run[2], run[9], run[5], run[10])
             if len(msg) > 1700:
                 await ctx.send(msg)
                 msg = ""

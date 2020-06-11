@@ -19,11 +19,24 @@ def createTables():
                    place INT,
                    game TEXT,
                    category TEXT,
+                   time TEXT,
+                   categoryid TEXT,
+                   subCategories TEXT,
+                   gameid TEXT,
+                   runners INT,
+                   wr TEXT,
                    PRIMARY KEY(runid, userid));
                 """)
     conn.commit()
     conn.close()
 
+def dropRuns():
+    conn = connectdb()
+    cur = conn.cursor()
+    cur.execute("""DROP TABLE runs; """)
+
+    conn.commit()
+    conn.close()
 
 
 def insertWhitelist(id, name):
@@ -51,12 +64,27 @@ def insertBlacklist(name):
         conn.close()
 
 def insertrun(run):
+    """
+        rundata:
+            runid       id of run
+            userid      user id
+            place       position in category
+            game        game name
+            category    category name. Includes sub-categories
+            time        run time
+            catid       id of main category
+            subCats     ids of subcategories in format <sub categoryid>=<sub category choice>, ...
+            gameid      id of game
+    """
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category)
-                        VALUES(?, ?, ?, ?, ?);""", (run["runid"], run["userid"], run["place"],
-                                                    run["game"], run["category"]))
+        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr)
+                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                                (run["runid"], run["userid"], run["place"],
+                                 run["game"], run["category"], run["time"],
+                                 run["catid"], run["subCats"], run["gameid"],
+                                 run["totalruns"], run["wr"]))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
