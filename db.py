@@ -5,17 +5,17 @@ def connectdb():
     return sqlite3.connect('speedrunners.db')
 
 
-def create_tables():
+def create_tables(guild_id):
     conn = connectdb()
     cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS whitelist(
+    cur.execute("""CREATE TABLE IF NOT EXISTS whitelist_%s(
                    userid TEXT PRIMARY KEY,
                    name TEXT);
-                """)
-    cur.execute("""CREATE TABLE IF NOT EXISTS blacklist(
+                """ % guild_id)
+    cur.execute("""CREATE TABLE IF NOT EXISTS blacklist_%s(
                    name TEXT PRIMARY KEY);
-                """)
-    cur.execute("""CREATE TABLE IF NOT EXISTS runs(
+                """ % guild_id)
+    cur.execute("""CREATE TABLE IF NOT EXISTS runs_%s(
                    runid TEXT NOT NULL,
                    userid TEXT NOT NULL,
                    place INT,
@@ -29,47 +29,49 @@ def create_tables():
                    wr TEXT,
                    link TEXT,
                    PRIMARY KEY(runid, userid));
-                """)
+                """ % guild_id)
     conn.commit()
     conn.close()
 
 
-def drop_runs():
-    conn = connectdb()
-    cur = conn.cursor()
-    cur.execute("""DROP TABLE runs; """)
-
-    conn.commit()
-    conn.close()
-
-
-def insert_whitelist(id, name):
+def drop_runs(guild_id):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO whitelist(userid, name)
-                        VALUES(?, ?);""", (id, name))
+        cur.execute("""DROP TABLE IF EXISTS runs_%s; """ % guild_id)
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_drop_runs: %s" % e)
+    conn.commit()
+    conn.close()
+
+
+def insert_whitelist(id, name, guild_id):
+    conn = connectdb()
+    cur = conn.cursor()
+    try:
+        cur.execute(""" INSERT INTO whitelist_%s(userid, name)
+                        VALUES(?, ?);""" % guild_id, (id, name))
+    except Exception as e:
+        print("Exception in _query_insert_whitelist: %s" % e)
     if conn:
         conn.commit()
         conn.close()
 
 
-def insert_blacklist(name):
+def insert_blacklist(name, guild_id):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO blacklist(name)
-                        VALUES(?);""", (name, ))
+        cur.execute(""" INSERT INTO blacklist_%s(name)
+                        VALUES(?);""" % guild_id, (name, ))
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_insert_blacklist: %s" % e)
     if conn:
         conn.commit()
         conn.close()
 
 
-def insertrun(run):
+def insertrun(run, guild_id):
     """
         rundata:
             runid       id of run
@@ -86,14 +88,14 @@ def insertrun(run):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link)
-                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
+        cur.execute(""" INSERT INTO runs_%s(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link)
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""" % guild_id, (
                     run["runid"], run["userid"], run["place"],
                     run["game"], run["category"], run["time"],
                     run["catid"], run["subCats"], run["gameid"],
                     run["totalruns"], run["wr"], run["link"]))
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_insertrun: %s" % e)
     if conn:
         conn.commit()
         conn.close()
@@ -107,7 +109,7 @@ def updaterun(run):
                         SET place = ?
                         WHERE runid=?; """, (run["place"], run["runid"]))
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_updaterun: %s" % e)
     if conn:
         conn.commit()
         conn.close()
@@ -120,7 +122,7 @@ def deleterun(runid):
         cur.execute(""" DELETE FROM runs
                         WHERE runid=? """, (runid, ))
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_deleterun: %s" % e)
     if conn:
         conn.commit()
         conn.close()
@@ -133,7 +135,7 @@ def deletewhite(userid):
         cur.execute(""" DELETE FROM whitelist
                         WHERE userid=? """, (userid, ))
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_deletewhite: %s" % e)
     if conn:
         conn.commit()
         conn.close()
@@ -146,7 +148,7 @@ def deleteblack(name):
         cur.execute(""" DELETE FROM blacklist
                         WHERE name=? """, (name, ))
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_deleteblack: %s" % e)
     if conn:
         conn.commit()
         conn.close()
@@ -162,7 +164,7 @@ def getallruns():
             conn.close()
         return result
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_getallruns: %s" % e)
     if conn:
         conn.close()
 
@@ -177,25 +179,25 @@ def getuserruns(userid):
             conn.close()
         return result
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_getuserruns: %s" % e)
     if conn:
         conn.close()
 
 
-def getuser(name):
+def getuser(name, guild_id):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" SELECT * FROM whitelist WHERE name=?; """, (name, ))
+        cur.execute(""" SELECT * FROM whitelist_%s WHERE name=?; """ % guild_id, (name, ))
         result = cur.fetchall()
         if not result:
-            cur.execute(""" SELECT * FROM blacklist WHERE name=?; """, (name, ))
+            cur.execute(""" SELECT * FROM blacklist_%s WHERE name=?; """ % guild_id, (name, ))
             result = cur.fetchall()
         if conn:
             conn.close()
         return result
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_get_user: %s" % e)
     if conn:
         conn.close()
 
@@ -213,7 +215,7 @@ def get_user_name(userid):
         else:
             return None
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_get_user_name: %s" % e)
     if conn:
         conn.close()
 
@@ -228,7 +230,7 @@ def getallwhite():
             conn.close()
         return result
     except Exception as e:
-        print("Exception in _query: %s" % e)
+        print("Exception in _query_getallwhite: %s" % e)
     if conn:
         conn.close()
 

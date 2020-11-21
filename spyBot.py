@@ -11,6 +11,7 @@ GUILD = os.getenv('DISCORD_GUILD')
 CHANNEL = int(os.getenv('DISCORD_CHANNEL'))
 OWNER = int(os.getenv('OWNER_ID'))
 loop = asyncio.get_event_loop()
+defaultguild = "372333530333839361"
 
 
 def check_member(member):
@@ -19,17 +20,17 @@ def check_member(member):
     else:
         name = member.name
     name = name.replace(" ", "")
-    if not db.getuser(name):
-        user = speedrun.getuser(name)
+    if not db.getuser(name, member.guild.id):
+        user = speedrun.get_user(name)
         if user:
-            db.insert_whitelist(user["id"], name)
+            db.insert_whitelist(user["id"], name, member.guild.id)
             bests = speedrun.get_best(user)
             if bests:
                 pb = speedrun.parse_pb(bests, user["id"])
                 for run in pb:
-                    db.insertrun(run)
+                    db.insertrun(run, member.guild.id)
         else:
-            db.insert_blacklist(name)
+            db.insert_blacklist(name, member.guild.id)
 
 
 async def background_update_task():
@@ -40,7 +41,7 @@ async def background_update_task():
             print("Background update")
             users = db.getallwhite()
             for user in users:
-                update_member(user[1])
+                update_member(user[1], defaultguild)
             print("update done")
             await asyncio.sleep(7200)
         except Exception as e:
@@ -48,8 +49,8 @@ async def background_update_task():
             await asyncio.sleep(7200)
 
 
-def update_member(name, shout=True):
-    user = speedrun.getuser(name)
+def update_member(name, guild_id, shout=True):
+    user = speedrun.get_user(name)
     bests = speedrun.get_best(user)
     if user and bests:
         pb = speedrun.parse_pb(bests, user["id"])
@@ -60,7 +61,7 @@ def update_member(name, shout=True):
                 for oldrun in old:
                     if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
                         db.deleterun(oldrun[0])
-                db.insertrun(run)
+                db.insertrun(run, guild_id)
                 if shout:
                     loop.create_task(announce_run(run))
             else:
@@ -93,27 +94,54 @@ bot = commands.Bot(command_prefix='/')
 
 @bot.event
 async def on_ready():
+    if len(bot.guilds) == 0:
+        print("no guilds active")
     for guild in bot.guilds:
-        if guild.name == GUILD:
-            break
+        """if guild.name == GUILD:
+            break"""
+        print(
+            f'{bot.user} is connected to the following guild:\n'
+            f'{guild.name}(id: {guild.id})'
+        )
+        count = 0
+        users = guild.member_count
+        print("guild has {} members\n".format(guild.member_count))
+        print("Checking speedrun.com")
+        db.create_tables(guild.id)
+        print("{}/{} members verified".format(count, users))
+        for member in guild.members:
+            check_member(member)
+            count += 1
+            if count % 10 == 0:
+                print("{}/{} members verified".format(count, users))
+                await asyncio.sleep(10)
+        print("{}/{} members verified".format(count, users))
 
-    print(
-        f'{bot.user} is connected to the following guild:\n'
-        f'{guild.name}(id: {guild.id})'
-    )
-    count = 0
-    users = guild.member_count
-    print("guild has {} members\n".format(guild.member_count))
-    print("Checking speedrun.com")
-    db.create_tables()
-    print("{}/{} members verified".format(count, users))
-    for member in guild.members:
-        check_member(member)
-        count += 1
-        if count % 10 == 0:
-            print("{}/{} members verified".format(count, users))
-            await asyncio.sleep(10)
-    print("{}/{} members verified".format(count, users))
+
+@bot.event
+async def on_guild_join(guild):
+    print("GUILD JOIN", bot.guilds)
+    """if len(bot.guilds) == 0:
+        print("no guilds active")
+    for guild in bot.guilds:
+        print(
+            f'{bot.user} is connected to the following guild:\n'
+            f'{guild.name}(id: {guild.id})'
+        )
+        count = 0
+        users = guild.member_count
+        print("guild has {} members\n".format(guild.member_count))
+        print("Checking speedrun.com")
+        db.create_tables()
+        print("{}/{} members verified".format(count, users))
+        for member in guild.members:
+            check_member(member)
+            count += 1
+            if count % 10 == 0:
+                print("{}/{} members verified".format(count, users))
+                await asyncio.sleep(10)
+        print("{}/{} members verified".format(count, users))"""
+
 
 
 @bot.event
@@ -135,7 +163,7 @@ async def check_updates(ctx):
     users = db.getallwhite()
     await ctx.send("Will now check for new runs")
     for user in users:
-        update_member(user[1])
+        update_member(user[1], ctx.message.guild.id)
     print("update done")
 
 
@@ -144,11 +172,11 @@ async def renew_runs(ctx):
     if ctx.message.author.id == OWNER:
         print("Run update")
         users = db.getallwhite()
-        db.drop_runs()
-        db.create_tables()
+        db.drop_runs(ctx.message.guild.id)
+        db.create_tables(ctx.message.guild.id)
         await ctx.send("Will reacquire runs")
         for user in users:
-            update_member(user[1], False)
+            update_member(user[1], ctx.message.guild.id, False)
         print("update done")
     else:
         await ctx.send("You don't have rights for this function")
@@ -157,7 +185,7 @@ async def renew_runs(ctx):
 @bot.command(name='runlist', help='/runlist <name>: lists all runs that person has. No name will list all runs on server')
 async def send_rankings(ctx, name: str = ""):
     if name:
-        users = db.getuser(name)
+        users = db.getuser(name, ctx.message.guild.id)
     else:
         if ctx.message.author.id != OWNER:
             await ctx.send("Needs a name")
@@ -187,11 +215,11 @@ async def follow(ctx, name: str = ""):
     if not name:
         await ctx.send("You need to give a name")
         return
-    user = db.getuser(name)
+    user = db.getuser(name, ctx.message.guild.id)
     if not user or len(user[0]) == 1:
-        user_sr = speedrun.getuser(name)
+        user_sr = speedrun.get_user(name)
         if user_sr:
-            db.insert_whitelist(user_sr["id"], name)
+            db.insert_whitelist(user_sr["id"], name, ctx.message.guild.id)
             if len(user) != 0:
                 db.deleteblack(name)
             await ctx.send("Will now follow {}".format(name))
@@ -199,7 +227,7 @@ async def follow(ctx, name: str = ""):
             if bests:
                 pb = speedrun.parse_pb(bests, user_sr["id"])
                 for run in pb:
-                    db.insertrun(run)
+                    db.insertrun(run, ctx.message.guild.id)
         else:
             await ctx.send("Speedrun.com has no {}".format(name))
     else:
@@ -211,14 +239,14 @@ async def unfollow(ctx, name: str = ""):
     if not name:
         await ctx.send("You need to give a name")
         return
-    user = db.getuser(name)
+    user = db.getuser(name, ctx.message.guild.id)
     if not user or len(user[0]) == 1:
         await ctx.send("I wasn't even following {}".format(name))
         return
     else:
-        user = db.getuser(name)
+        user = db.getuser(name, ctx.message.guild.id)
         db.deletewhite(user[0][0])
-        db.insert_blacklist(user[0][1])
+        db.insert_blacklist(user[0][1], ctx.message.guild.id)
         runs = db.getuserruns(user[0][0])
         for run in runs:
             db.deleterun(run[0])
