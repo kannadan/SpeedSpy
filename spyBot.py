@@ -13,33 +13,34 @@ OWNER = int(os.getenv('OWNER_ID'))
 loop = asyncio.get_event_loop()
 
 
-def checkMember(member):
+def check_member(member):
     if member.nick:
         name = member.nick
     else:
         name = member.name
     name = name.replace(" ", "")
-    if not db.getUser(name):
-        user = speedrun.getUser(name)
+    if not db.getuser(name):
+        user = speedrun.getuser(name)
         if user:
-            db.insertWhitelist(user["id"], name)
-            bests = speedrun.getBest(user)
+            db.insert_whitelist(user["id"], name)
+            bests = speedrun.get_best(user)
             if bests:
-                pb = speedrun.parsePB(bests, user["id"])
+                pb = speedrun.parse_pb(bests, user["id"])
                 for run in pb:
                     db.insertrun(run)
         else:
-            db.insertBlacklist(name)
+            db.insert_blacklist(name)
 
-async def backgroundUpdateTask():
+
+async def background_update_task():
     await bot.wait_until_ready()
     await asyncio.sleep(3600)
     while not bot.is_closed():
         try:
             print("Background update")
-            users = db.getAllWhite()
+            users = db.getallwhite()
             for user in users:
-                updateMember(user[1])
+                update_member(user[1])
             print("update done")
             await asyncio.sleep(7200)
         except Exception as e:
@@ -47,46 +48,48 @@ async def backgroundUpdateTask():
             await asyncio.sleep(7200)
 
 
+def update_member(name, shout=True):
+    user = speedrun.getuser(name)
+    bests = speedrun.get_best(user)
+    if user and bests:
+        pb = speedrun.parse_pb(bests, user["id"])
+        old = db.getuserruns(user["id"])
+        oldids = [x[0] for x in old]
+        for run in pb:
+            if run["runid"] not in oldids:
+                for oldrun in old:
+                    if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
+                        db.deleterun(oldrun[0])
+                db.insertrun(run)
+                if shout:
+                    loop.create_task(announce_run(run))
+            else:
+                for oldrun in old:
+                    if oldrun[0] == run["runid"] and oldrun[2] != run["place"]:
+                        db.updaterun(run)
+                        if shout:
+                            loop.create_task(announce_change(run, oldrun[2] - run["place"]))
+                        break
 
-def updateMember(name, shout=True):
-    user = speedrun.getUser(name)
-    if user:
-        bests = speedrun.getBest(user)
-        if bests:
-            pb = speedrun.parsePB(bests, user["id"])
-            old = db.getUserruns(user["id"])
-            oldids = [x[0] for x in old]
-            for run in pb:
-                if run["runid"] not in oldids:
-                    for oldrun in old:
-                        if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
-                            db.deleterun(oldrun[0])
-                    db.insertrun(run)
-                    if shout:
-                        loop.create_task(announceRun(run))
-                else:
-                    for oldrun in old:
-                        if oldrun[0] == run["runid"] and oldrun[2] != run["place"]:
-                            db.updaterun(run)
-                            if shout:
-                                loop.create_task(announceChange(run, oldrun[2] - run["place"]))
-                            break
 
-async def announceRun(run):
+async def announce_run(run):
     channel = bot.get_channel(CHANNEL)
-    name = db.getUserName(run["userid"])
+    name = db.getuserName(run["userid"])
     await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
 
-async def announceChange(run, change):
+
+async def announce_change(run, change):
     channel = bot.get_channel(CHANNEL)
-    name = db.getUserName(run["userid"])
+    name = db.getuserName(run["userid"])
     if change > 0:
         await channel.send('{} has risen to rank {}/{} in {} {}'.format(name, run["place"], run["totalruns"], run["game"], run["category"]))
     else:
         await channel.send('{} has dropped to rank {}/{} in {} {}'.format(name, run["place"], run["totalruns"], run["game"], run["category"]))
 
-#client = discord.Client()
+
+# client = discord.Client()
 bot = commands.Bot(command_prefix='/')
+
 
 @bot.event
 async def on_ready():
@@ -102,71 +105,75 @@ async def on_ready():
     users = guild.member_count
     print("guild has {} members\n".format(guild.member_count))
     print("Checking speedrun.com")
-    db.createTables()
+    db.create_tables()
     print("{}/{} members verified".format(count, users))
     for member in guild.members:
-        checkMember(member)
+        check_member(member)
         count += 1
         if count % 10 == 0:
             print("{}/{} members verified".format(count, users))
             await asyncio.sleep(10)
     print("{}/{} members verified".format(count, users))
 
+
 @bot.event
 async def on_member_join(member):
     print("checking new member")
-    checkMember(member)
+    check_member(member)
+
 
 @bot.event
 async def on_member_update(old, member):
     print("checking member update")
     if old.nick != member.nick:
-        checkMember(member)
+        check_member(member)
 
 
 @bot.command(name='update', help='Checks for new runs in speedrun.com')
-async def checkUpdates(ctx):
+async def check_updates(ctx):
     print("Run update")
-    users = db.getAllWhite()
+    users = db.getallwhite()
     await ctx.send("Will now check for new runs")
     for user in users:
-        updateMember(user[1])
+        update_member(user[1])
     print("update done")
 
+
 @bot.command(name='drop_table', help='Drops all runs and fetches again. Will not shout')
-async def renewRuns(ctx):
+async def renew_runs(ctx):
     if ctx.message.author.id == OWNER:
         print("Run update")
-        users = db.getAllWhite()
-        db.dropRuns()
-        db.createTables()
+        users = db.getallwhite()
+        db.drop_runs()
+        db.create_tables()
         await ctx.send("Will reacquire runs")
         for user in users:
-            updateMember(user[1], False)
+            update_member(user[1], False)
         print("update done")
     else:
         await ctx.send("You don't have rights for this function")
 
+
 @bot.command(name='runlist', help='/runlist <name>: lists all runs that person has. No name will list all runs on server')
-async def sendRankings(ctx, name: str = ""):
+async def send_rankings(ctx, name: str = ""):
     if name:
-        users = db.getUser(name)
+        users = db.getuser(name)
     else:
         if ctx.message.author.id != OWNER:
             await ctx.send("Needs a name")
             return
-        users = db.getAllWhite()
+        users = db.getallwhite()
         await ctx.send("This might take a while")
     if not users or len(users[0]) == 1:
         await ctx.send("I do not know this user. Try /follow <name> to add user to followed")
         return
     msg = ""
     for user in users:
-        runs = db.getUserruns(user[0])
+        runs = db.getuserruns(user[0])
         if runs:
             msg = msg + "**{}**\n".format(user[1])
         for run in runs:
-            #msg = msg + "> Rank {}/{}, ({}) on {} {}\n> WR {}\n".format(run[2], run[9], run[5], run[3], run[4], run[10])
+            # msg = msg + "> Rank {}/{}, ({}) on {} {}\n> WR {}\n".format(run[2], run[9], run[5], run[3], run[4], run[10])
             msg = msg + "> {} {}\n> \tRank {}/{}, ({})\n> \tWR {}\n".format(run[3], run[4], run[2], run[9], run[5], run[10])
             if len(msg) > 1700:
                 await ctx.send(msg)
@@ -174,22 +181,23 @@ async def sendRankings(ctx, name: str = ""):
     if msg != "":
         await ctx.send(msg)
 
+
 @bot.command(name='follow', help='/follow <name> adds that name to be followed on speedrun.com')
-async def follow(ctx, name : str = ""):
+async def follow(ctx, name: str = ""):
     if not name:
         await ctx.send("You need to give a name")
         return
-    user = db.getUser(name)
+    user = db.getuser(name)
     if not user or len(user[0]) == 1:
-        userSr = speedrun.getUser(name)
-        if userSr:
-            db.insertWhitelist(userSr["id"], name)
+        user_sr = speedrun.getuser(name)
+        if user_sr:
+            db.insert_whitelist(user_sr["id"], name)
             if len(user) != 0:
-                db.deleteBlack(name)
+                db.deleteblack(name)
             await ctx.send("Will now follow {}".format(name))
-            bests = speedrun.getBest(userSr)
+            bests = speedrun.get_best(user_sr)
             if bests:
-                pb = speedrun.parsePB(bests, userSr["id"])
+                pb = speedrun.parse_pb(bests, user_sr["id"])
                 for run in pb:
                     db.insertrun(run)
         else:
@@ -197,26 +205,28 @@ async def follow(ctx, name : str = ""):
     else:
         await ctx.send("Already following {}".format(name))
 
+
 @bot.command(name='unfollow', help='/unfollow <name> will stop following that guy')
-async def unfollow(ctx, name : str = ""):
+async def unfollow(ctx, name: str = ""):
     if not name:
         await ctx.send("You need to give a name")
         return
-    user = db.getUser(name)
+    user = db.getuser(name)
     if not user or len(user[0]) == 1:
         await ctx.send("I wasn't even following {}".format(name))
         return
     else:
-        user = db.getUser(name)
-        db.deleteWhite(user[0][0])
-        db.insertBlacklist(user[0][1])
-        runs = db.getUserruns(user[0][0])
+        user = db.getuser(name)
+        db.deletewhite(user[0][0])
+        db.insert_blacklist(user[0][1])
+        runs = db.getuserruns(user[0][0])
         for run in runs:
             db.deleterun(run[0])
         await ctx.send("Will now forget {}".format(name))
 
+
 @bot.command(name='shutdown', help='Closes bot')
-async def closeBot(ctx):
+async def close_bot(ctx):
 
     if ctx.message.author.id == OWNER:
         await ctx.send("Bye bye")
@@ -225,5 +235,5 @@ async def closeBot(ctx):
     else:
         await ctx.send("I'm sorry {}. I'm afraid I can't do that. ".format(ctx.message.author.name))
 
-bot.loop.create_task(backgroundUpdateTask())
+bot.loop.create_task(background_update_task())
 bot.run(TOKEN)

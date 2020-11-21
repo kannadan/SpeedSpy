@@ -130,3 +130,7 @@ dmypy.json
 
 # database
 *.db
+
+#vscode
+/.vscode
+.flake8

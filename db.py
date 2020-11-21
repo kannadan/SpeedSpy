@@ -1,9 +1,11 @@
 import sqlite3
 
+
 def connectdb():
     return sqlite3.connect('speedrunners.db')
 
-def createTables():
+
+def create_tables():
     conn = connectdb()
     cur = conn.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS whitelist(
@@ -31,7 +33,8 @@ def createTables():
     conn.commit()
     conn.close()
 
-def dropRuns():
+
+def drop_runs():
     conn = connectdb()
     cur = conn.cursor()
     cur.execute("""DROP TABLE runs; """)
@@ -40,7 +43,7 @@ def dropRuns():
     conn.close()
 
 
-def insertWhitelist(id, name):
+def insert_whitelist(id, name):
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -52,7 +55,8 @@ def insertWhitelist(id, name):
         conn.commit()
         conn.close()
 
-def insertBlacklist(name):
+
+def insert_blacklist(name):
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -63,6 +67,7 @@ def insertBlacklist(name):
     if conn:
         conn.commit()
         conn.close()
+
 
 def insertrun(run):
     """
@@ -82,16 +87,17 @@ def insertrun(run):
     cur = conn.cursor()
     try:
         cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link)
-                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
-                                (run["runid"], run["userid"], run["place"],
-                                 run["game"], run["category"], run["time"],
-                                 run["catid"], run["subCats"], run["gameid"],
-                                 run["totalruns"], run["wr"], run["link"]))
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
+                    run["runid"], run["userid"], run["place"],
+                    run["game"], run["category"], run["time"],
+                    run["catid"], run["subCats"], run["gameid"],
+                    run["totalruns"], run["wr"], run["link"]))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
         conn.commit()
         conn.close()
+
 
 def updaterun(run):
     conn = connectdb()
@@ -106,43 +112,47 @@ def updaterun(run):
         conn.commit()
         conn.close()
 
+
 def deleterun(runid):
     conn = connectdb()
     cur = conn.cursor()
     try:
         cur.execute(""" DELETE FROM runs
-                        WHERE runid=? """, (runid, ) )
+                        WHERE runid=? """, (runid, ))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
         conn.commit()
         conn.close()
 
-def deleteWhite(userid):
+
+def deletewhite(userid):
     conn = connectdb()
     cur = conn.cursor()
     try:
         cur.execute(""" DELETE FROM whitelist
-                        WHERE userid=? """, (userid, ) )
+                        WHERE userid=? """, (userid, ))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
         conn.commit()
         conn.close()
 
-def deleteBlack(name):
+
+def deleteblack(name):
     conn = connectdb()
     cur = conn.cursor()
     try:
         cur.execute(""" DELETE FROM blacklist
-                        WHERE name=? """, (name, ) )
+                        WHERE name=? """, (name, ))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
         conn.commit()
         conn.close()
 
-def getAllruns():
+
+def getallruns():
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -156,7 +166,8 @@ def getAllruns():
     if conn:
         conn.close()
 
-def getUserruns(userid):
+
+def getuserruns(userid):
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -170,7 +181,8 @@ def getUserruns(userid):
     if conn:
         conn.close()
 
-def getUser(name):
+
+def getuser(name):
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -187,7 +199,8 @@ def getUser(name):
     if conn:
         conn.close()
 
-def getUserName(userid):
+
+def get_user_name(userid):
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -204,7 +217,8 @@ def getUserName(userid):
     if conn:
         conn.close()
 
-def getAllWhite():
+
+def getallwhite():
     conn = connectdb()
     cur = conn.cursor()
     try:
@@ -217,6 +231,7 @@ def getAllWhite():
         print("Exception in _query: %s" % e)
     if conn:
         conn.close()
+
 
 if __name__ == "__main__":
     pass
