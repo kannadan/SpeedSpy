@@ -117,13 +117,14 @@ def getRandomGame():
         pUrl = f'{platformUrl}{platforms[0]}'
         plat = json.load(urlopen(pUrl))
     
-    categoryUrl = url + '/categories'    
-    catRes = json.load(urlopen(categoryUrl))
+    caturl = url + '/categories'    
+    catRes = json.load(urlopen(caturl))
 
-    leaderUrl = f'{leaderboardurl}{bulkGame["id"]}/category/{catRes["data"][0]["id"]}'
+    catIndex = randrange(0, len(catRes["data"]))
+    leaderUrl = f'{categoryUrl}{catRes["data"][catIndex]["id"]}/records'
     wrRes = json.load(urlopen(leaderUrl))
         
-    return (lb["data"], plat["data"], catRes["data"][0], wrRes["data"]["runs"])
+    return (lb["data"], plat["data"], catRes["data"][catIndex], wrRes["data"][0]["runs"])
 
 
 if __name__ == "__main__":

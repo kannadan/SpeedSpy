@@ -234,8 +234,10 @@ async def getRandomGame(ctx):
     platform = results[1]
     category = results[2]
     runs = results[3]    
-    wr = runs[0]
-    time = speedrun.getTimeString(wr['run']["times"]["primary_t"])
+    time = "Ei mittään"
+    if(len(runs) > 0):
+        wr = runs[0]
+        time = speedrun.getTimeString(wr['run']["times"]["primary_t"])
       
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
         f'{category["name"]} WR: {time}\nRunners: {len(runs)}')    
