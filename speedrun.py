@@ -1,11 +1,13 @@
 import json
 from urllib.request import urlopen
 from dateutil.relativedelta import relativedelta
+from random import randrange
 
 usersUrl = 'https://www.speedrun.com/api/v1/users?max=200&name='
 gamesUrl = 'https://www.speedrun.com/api/v1/games/'
 categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 leaderboardurl = "https://www.speedrun.com/api/v1/leaderboards/"    # ad gameid/category/catid?var-subcatvariables
+platformUrl = 'https://www.speedrun.com/api/v1/platforms/'
 
 def getUser(username):
     try:
@@ -94,6 +96,35 @@ def getLeaderboardData(gameid, catid, subcats):
     total = len(lb["data"]["runs"])
     wr = getTimeString(lb["data"]["runs"][0]["run"]["times"]["primary_t"])
     return {"total": total, "wr": wr}
+
+def getRandomGame():
+    offset = randrange(0,25000)
+    url = f'{gamesUrl[:-1]}?offset={offset}&_bulk=yes'
+    lb = json.load(urlopen(url))
+    if(len(lb["data"]) == 0):
+        url = lb["pagination"]["links"][0]["uri"]
+        lb = json.load(urlopen(url))
+    games = len(lb["data"])
+    if(games == 0):
+        return 0
+    bulkGame = lb["data"][randrange(0, games - 1)]
+    url = f'{gamesUrl}{bulkGame["id"]}'
+    lb = json.load(urlopen(url))
+
+    platforms = lb["data"]["platforms"]
+    plat = 0
+    if(len(platforms) > 0):
+        pUrl = f'{platformUrl}{platforms[0]}'
+        plat = json.load(urlopen(pUrl))
+    
+    categoryUrl = url + '/categories'    
+    catRes = json.load(urlopen(categoryUrl))
+
+    leaderUrl = f'{leaderboardurl}{bulkGame["id"]}/category/{catRes["data"][0]["id"]}'
+    wrRes = json.load(urlopen(leaderUrl))
+        
+    return (lb["data"], plat["data"], catRes["data"][0], wrRes["data"]["runs"][0])
+
 
 if __name__ == "__main__":
     user = getUser("kannadan")

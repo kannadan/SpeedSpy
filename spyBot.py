@@ -5,6 +5,7 @@ import asyncio
 import speedrun
 import db
 
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
@@ -224,6 +225,20 @@ async def closeBot(ctx):
 
     else:
         await ctx.send("I'm sorry {}. I'm afraid I can't do that. ".format(ctx.message.author.name))
+
+@bot.command(name='givgame', help='Gives random game from speedrun to run')
+async def getRandomGame(ctx):
+
+    results = speedrun.getRandomGame()
+    game = results[0]
+    platform = results[1]
+    category = results[2]
+    wr = results[3]    
+    time = speedrun.getTimeString(wr['run']["times"]["primary_t"])
+      
+    await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
+        f'{category["name"]} WR: {time}')    
+    
 
 bot.loop.create_task(backgroundUpdateTask())
 bot.run(TOKEN)
