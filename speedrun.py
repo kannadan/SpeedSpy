@@ -123,7 +123,7 @@ def getRandomGame():
     leaderUrl = f'{leaderboardurl}{bulkGame["id"]}/category/{catRes["data"][0]["id"]}'
     wrRes = json.load(urlopen(leaderUrl))
         
-    return (lb["data"], plat["data"], catRes["data"][0], wrRes["data"]["runs"][0])
+    return (lb["data"], plat["data"], catRes["data"][0], wrRes["data"]["runs"])
 
 
 if __name__ == "__main__":

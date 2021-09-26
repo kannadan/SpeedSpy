@@ -233,11 +233,12 @@ async def getRandomGame(ctx):
     game = results[0]
     platform = results[1]
     category = results[2]
-    wr = results[3]    
+    runs = results[3]    
+    wr = runs[0]
     time = speedrun.getTimeString(wr['run']["times"]["primary_t"])
       
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
-        f'{category["name"]} WR: {time}')    
+        f'{category["name"]} WR: {time}\nRunners: {len(runs)}')    
     
 
 bot.loop.create_task(backgroundUpdateTask())
