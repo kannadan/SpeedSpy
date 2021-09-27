@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import asyncio
 import speedrun
 import db
-
+from datetime import datetime
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -32,6 +32,14 @@ def checkMember(member):
         else:
             db.insertBlacklist(name)
 
+def isItMondayMyDudes():
+    now = datetime.now()
+    weekday = now.weekday()
+    if weekday == 0 and now.hour >= 11 and now.hour < 13:
+        return True
+    else:        
+        return False
+
 async def backgroundUpdateTask():
     await bot.wait_until_ready()
     await asyncio.sleep(3600)
@@ -40,7 +48,7 @@ async def backgroundUpdateTask():
             print("Background update")
             users = db.getAllWhite()
             for user in users:
-                updateMember(user[1])
+                updateMember(user[1], isItMondayMyDudes())
             print("update done")
             await asyncio.sleep(7200)
         except Exception as e:
@@ -49,7 +57,7 @@ async def backgroundUpdateTask():
 
 
 
-def updateMember(name, shout=True):
+def updateMember(name, monday=False, shout=True):
     user = speedrun.getUser(name)
     if user:
         bests = speedrun.getBest(user)
@@ -69,7 +77,7 @@ def updateMember(name, shout=True):
                     for oldrun in old:
                         if oldrun[0] == run["runid"] and oldrun[2] != run["place"]:
                             db.updaterun(run)
-                            if shout:
+                            if shout and monday:
                                 loop.create_task(announceChange(run, oldrun[2] - run["place"]))
                             break
 
@@ -143,7 +151,7 @@ async def renewRuns(ctx):
         db.createTables()
         await ctx.send("Will reacquire runs")
         for user in users:
-            updateMember(user[1], False)
+            updateMember(user[1], False, False)
         print("update done")
     else:
         await ctx.send("You don't have rights for this function")
