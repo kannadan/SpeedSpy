@@ -36,7 +36,7 @@ def isItMondayMyDudes():
     now = datetime.now()
     weekday = now.weekday()
     # if weekday == 0 and now.hour >= 11 and now.hour < 13:
-    if now.hour >= 11 and now.hour < 13
+    if now.hour >= 11 and now.hour < 13:
         return True
     else:        
         return False
