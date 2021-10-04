@@ -91,9 +91,9 @@ async def announceChange(run, change):
     channel = bot.get_channel(CHANNEL)
     name = db.getUserName(run["userid"])
     if change > 0:
-        await channel.send('{} has risen to rank {}/{} in {} {}. Change {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
+        await channel.send('{} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
     else:
-        await channel.send('{} has dropped to rank {}/{} in {} {}. Change {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
+        await channel.send('{} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
 
 #client = discord.Client()
 bot = commands.Bot(command_prefix='/')
