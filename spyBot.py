@@ -35,7 +35,8 @@ def checkMember(member):
 def isItMondayMyDudes():
     now = datetime.now()
     weekday = now.weekday()
-    if weekday == 0 and now.hour >= 11 and now.hour < 13:
+    # if weekday == 0 and now.hour >= 11 and now.hour < 13:
+    if now.hour >= 11 and now.hour < 13
         return True
     else:        
         return False
@@ -75,9 +76,9 @@ def updateMember(name, monday=False, shout=True):
                         loop.create_task(announceRun(run))
                 else:
                     for oldrun in old:
-                        if oldrun[0] == run["runid"] and oldrun[2] != run["place"]:
+                        if oldrun[0] == run["runid"] and oldrun[2] != run["place"] and monday:
                             db.updaterun(run)
-                            if shout and monday:
+                            if shout:
                                 loop.create_task(announceChange(run, oldrun[2] - run["place"]))
                             break
 
