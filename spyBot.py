@@ -13,6 +13,8 @@ CHANNEL = int(os.getenv('DISCORD_CHANNEL'))
 OWNER = int(os.getenv('OWNER_ID'))
 loop = asyncio.get_event_loop()
 
+def getTime():
+    return datetime.now()
 
 def checkMember(member):
     if member.nick:
@@ -38,7 +40,7 @@ def isItMondayMyDudes():
     # if weekday == 0 and now.hour >= 11 and now.hour < 13:
     if now.hour >= 11 and now.hour < 13:
         return True
-    else:        
+    else:
         return False
 
 async def backgroundUpdateTask():
@@ -46,14 +48,14 @@ async def backgroundUpdateTask():
     await asyncio.sleep(3600)
     while not bot.is_closed():
         try:
-            print("Background update")
+            print(getTime(), "Background update")
             users = db.getAllWhite()
             for user in users:
                 updateMember(user[1], isItMondayMyDudes())
-            print("update done")
+            print(getTime(), "update done")
             await asyncio.sleep(7200)
         except Exception as e:
-            print(str(e))
+            print(getTime(), str(e))
             await asyncio.sleep(7200)
 
 
@@ -68,6 +70,7 @@ def updateMember(name, monday=False, shout=True):
             oldids = [x[0] for x in old]
             for run in pb:
                 if run["runid"] not in oldids:
+                    # print(name, run["game"], run["category"], run["place"])
                     for oldrun in old:
                         if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
                             db.deleterun(oldrun[0])
@@ -81,6 +84,8 @@ def updateMember(name, monday=False, shout=True):
                             if shout:
                                 loop.create_task(announceChange(run, oldrun[2] - run["place"]))
                             break
+            return len(pb)
+    return 0
 
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
@@ -104,56 +109,78 @@ async def on_ready():
         if guild.name == GUILD:
             break
 
-    print(
+    print(getTime(),
         f'{bot.user} is connected to the following guild:\n'
         f'{guild.name}(id: {guild.id})'
     )
     count = 0
     users = guild.member_count
-    print("guild has {} members\n".format(guild.member_count))
-    print("Checking speedrun.com")
+    print(getTime(), "guild has {} members\n".format(guild.member_count))
+    print(getTime(), "Checking speedrun.com")
     db.createTables()
-    print("{}/{} members verified".format(count, users))
+    print(getTime(), "{}/{} members verified".format(count, users))
     for member in guild.members:
         checkMember(member)
         count += 1
         if count % 10 == 0:
-            print("{}/{} members verified".format(count, users))
+            print(getTime(), "{}/{} members verified".format(count, users))
             await asyncio.sleep(10)
-    print("{}/{} members verified".format(count, users))
+    print(getTime(), "{}/{} members verified. Verification Done".format(count, users))
 
 @bot.event
 async def on_member_join(member):
-    print("checking new member")
+    print(getTime(), "checking new member")
     checkMember(member)
 
 @bot.event
 async def on_member_update(old, member):
-    print("checking member update")
+    print(getTime(), "checking member update")
     if old.nick != member.nick:
         checkMember(member)
 
 
 @bot.command(name='update', help='Checks for new runs in speedrun.com')
 async def checkUpdates(ctx):
-    print("Run update")
+    print(getTime(), "Run update")
     users = db.getAllWhite()
     await ctx.send("Will now check for new runs")
+    count = 0
+    requestAmount = 0
+    amountOfUsers = len(users)
     for user in users:
-        updateMember(user[1])
-    print("update done")
+        runs = updateMember(user[1])
+        requestAmount += 2 + runs
+        count += 1
+        if count % 10 == 0:
+            print(getTime(), "{}/{} members updated. Requests: {}".format(count, amountOfUsers, requestAmount))
+        if requestAmount > 90 and count != amountOfUsers:
+            print(getTime(), "Approaching rate limit. Time to sleep")
+            requestAmount = 0
+            await asyncio.sleep(30)
+    print(getTime(), "update done")
 
 @bot.command(name='drop_table', help='Drops all runs and fetches again. Will not shout')
 async def renewRuns(ctx):
     if ctx.message.author.id == OWNER:
-        print("Run update")
+        print(getTime(), "Run update")
         users = db.getAllWhite()
         db.dropRuns()
         db.createTables()
         await ctx.send("Will reacquire runs")
+        count = 0
+        requestAmount = 0
+        amountOfUsers = len(users)
         for user in users:
-            updateMember(user[1], False, False)
-        print("update done")
+            runs = updateMember(user[1], False, False)
+            requestAmount += 2 + runs
+            count += 1
+            if count % 10 == 0:
+                print(getTime(), "{}/{} members reloaded".format(count, amountOfUsers))
+            if requestAmount > 90 and count != amountOfUsers:
+                print(getTime(), "Approaching rate limit. Time to sleep")
+                requestAmount = 0
+                await asyncio.sleep(30)
+        print(getTime(), "update done")
     else:
         await ctx.send("You don't have rights for this function")
 
@@ -242,15 +269,15 @@ async def getRandomGame(ctx):
     game = results[0]
     platform = results[1]
     category = results[2]
-    runs = results[3]    
+    runs = results[3]
     time = "Ei mittään"
     if(len(runs) > 0):
         wr = runs[0]
         time = speedrun.getTimeString(wr['run']["times"]["primary_t"])
-      
+
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
-        f'{category["name"]} WR: {time}\nRunners: {len(runs)}')    
-    
+        f'{category["name"]} WR: {time}\nRunners: {len(runs)}')
+
 
 bot.loop.create_task(backgroundUpdateTask())
 bot.run(TOKEN)

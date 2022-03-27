@@ -1,7 +1,10 @@
 import json
 from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 from dateutil.relativedelta import relativedelta
 from random import randrange
+from datetime import datetime
+
 
 usersUrl = 'https://www.speedrun.com/api/v1/users?max=200&name='
 gamesUrl = 'https://www.speedrun.com/api/v1/games/'
@@ -9,13 +12,29 @@ categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 leaderboardurl = "https://www.speedrun.com/api/v1/leaderboards/"    # ad gameid/category/catid?var-subcatvariables
 platformUrl = 'https://www.speedrun.com/api/v1/platforms/'
 
-def getUser(username):
+def getTime():
+    return datetime.now()
+
+def getRequest(url):
     try:
-        user = json.load(urlopen(usersUrl + username))
+        results = json.load(urlopen(url))
+        return results
+    except HTTPError as e:
+        print(getTime(), "HttpError {} occured".format(e.code), url)
+    except URLError as e:
+        print(getTime(), 'URLError occured. Reason: ', e.reason, url)
     except UnicodeEncodeError as e:
-        print("Unicode error")
+        print(getTime(), "Unicode error", url)
+    except:
+        print(getTime(), "Unknown error", url)
+    return None
+
+def getUser(username):
+
+    user = getRequest(usersUrl + username)
+    if user == None:
         return None
-    #print(user["data"][0]["id"])
+    #print(getTime(), user["data"][0]["id"])
     if user["data"]:
         if user["pagination"]["size"] != 1:
             for u in user["data"]:
@@ -28,7 +47,9 @@ def getUser(username):
 
 def getBest(user):
     bestLink = next((item for item in user["links"] if item["rel"] == "personal-bests"), None)
-    personal_bests = json.load(urlopen(bestLink["uri"]))
+    personal_bests = getRequest(bestLink["uri"] + "?embed=game,category.variables")
+    if personal_bests is None:
+        return []
     return personal_bests["data"]
 
 def parsePB(pbs, userid):
@@ -41,13 +62,19 @@ def parsePB(pbs, userid):
         time = a["run"]["times"]["primary_t"]
 
         result["time"] = getTimeString(time)
-        game = json.load(urlopen(gamesUrl + a["run"]["game"]))
+        game = a["game"]
+        if game is None:
+            continue
         result["game"] = game["data"]["names"]["international"]
-        catData = getCategories(a)
+        catData = getCategories(a, a["category"]["data"])
+        if catData is None:
+            continue
         result["category"] = catData["ctext"]
         result["catid"] = catData["id"]
         result["subCats"] = catData["subs"]
         lbData = getLeaderboardData(result["gameid"], catData["id"], catData["subs"])
+        if lbData is None:
+            continue
         result["totalruns"] = lbData["total"]
         result["wr"] = lbData["wr"]
         result["link"] = a["run"]["weblink"]
@@ -64,14 +91,16 @@ def getTimeString(timeseconds):
         timestr = timestr + f' {time.seconds:06.3f}s'
     return timestr
 
-def getCategories(run):
-    categories = json.load(urlopen(gamesUrl + run["run"]["game"] + "/categories"))
-    category = next((item for item in categories["data"] if item["id"] == run["run"]["category"]), None)
+def getCategories(run, category):
+    if category is None:
+        return None
     result = {"name": category["name"], "id": category["id"]}
     ctext = category["name"]
     subs = ""
     if run["run"]["values"]:
-        variables = json.load(urlopen(categoryUrl + run["run"]["category"] + "/variables"))
+        variables = category["variables"]
+        if variables is None:
+            return None
         for d in variables["data"]:
             if d["is-subcategory"]:
                 ctext = ctext + ", " + d["values"]["values"][run["run"]["values"][d["id"]]]["label"]  #this json is nightmarish. d ->value->value->a variable id -> that id's label
@@ -92,7 +121,9 @@ def getLeaderboardData(gameid, catid, subcats):
         catlist = subcats.split(",")
         for cat in catlist:
             url = url + "var-" + cat + "&"
-    lb = json.load(urlopen(url))
+    lb = getRequest(url)
+    if lb is None:
+        return None
     total = len(lb["data"]["runs"])
     wr = getTimeString(lb["data"]["runs"][0]["run"]["times"]["primary_t"])
     return {"total": total, "wr": wr}
@@ -100,34 +131,34 @@ def getLeaderboardData(gameid, catid, subcats):
 def getRandomGame():
     offset = randrange(0,25000)
     url = f'{gamesUrl[:-1]}?offset={offset}&_bulk=yes'
-    lb = json.load(urlopen(url))
+    lb =  getRequest(url)
     if(len(lb["data"]) == 0):
         url = lb["pagination"]["links"][0]["uri"]
-        lb = json.load(urlopen(url))
+        lb = getRequest(url)
     games = len(lb["data"])
     if(games == 0):
         return 0
     bulkGame = lb["data"][randrange(0, games - 1)]
     url = f'{gamesUrl}{bulkGame["id"]}'
-    lb = json.load(urlopen(url))
+    lb = getRequest(url)
 
     platforms = lb["data"]["platforms"]
     plat = 0
     if(len(platforms) > 0):
         pUrl = f'{platformUrl}{platforms[0]}'
-        plat = json.load(urlopen(pUrl))
-    
-    caturl = url + '/categories'    
-    catRes = json.load(urlopen(caturl))
+        plat = getRequest(pUrl)
+
+    caturl = url + '/categories'
+    catRes = getRequest(caturl)
 
     catIndex = randrange(0, len(catRes["data"]))
     leaderUrl = f'{categoryUrl}{catRes["data"][catIndex]["id"]}/records'
-    wrRes = json.load(urlopen(leaderUrl))
-        
+    wrRes = getRequest(leaderUrl)
+
     return (lb["data"], plat["data"], catRes["data"][catIndex], wrRes["data"][0]["runs"])
 
 
 if __name__ == "__main__":
     user = getUser("kannadan")
     pbs = getBest(user)
-    print(parsePB(pbs, user["id"]))
+    print(getTime(), parsePB(pbs, user["id"]))
