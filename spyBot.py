@@ -50,8 +50,15 @@ async def backgroundUpdateTask():
         try:
             print(getTime(), "Background update")
             users = db.getAllWhite()
+            count = 0
+            requestAmount = 0
             for user in users:
-                updateMember(user[0], isItMondayMyDudes())
+                runs = updateMember(user[0], isItMondayMyDudes())                
+                requestAmount += 2 + runs
+                count += 1                
+                if requestAmount > 90 and count != amountOfUsers:                    
+                    requestAmount = 0
+                    await asyncio.sleep(30)
             print(getTime(), "update done")
             await asyncio.sleep(7200)
         except Exception as e:
