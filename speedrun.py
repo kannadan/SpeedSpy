@@ -6,7 +6,7 @@ from random import randrange
 from datetime import datetime
 
 
-usersUrl = 'https://www.speedrun.com/api/v1/users?max=200&name='
+usersUrl = 'https://www.speedrun.com/api/v1/users'
 gamesUrl = 'https://www.speedrun.com/api/v1/games/'
 categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 leaderboardurl = "https://www.speedrun.com/api/v1/leaderboards/"    # ad gameid/category/catid?var-subcatvariables
@@ -31,7 +31,7 @@ def getRequest(url):
 
 def getUser(username):
 
-    user = getRequest(usersUrl + username)
+    user = getRequest(usersUrl + "?max=200&lookup=" + username)
     if user == None:
         return None
     #print(getTime(), user["data"][0]["id"])
@@ -45,9 +45,8 @@ def getUser(username):
             return user["data"][0]
     return None
 
-def getBest(user):
-    bestLink = next((item for item in user["links"] if item["rel"] == "personal-bests"), None)
-    personal_bests = getRequest(bestLink["uri"] + "?embed=game,category.variables")
+def getBest(userId):
+    personal_bests = getRequest(usersUrl + "/" + userId + "/personal-bests?embed=game,category.variables")
     if personal_bests is None:
         return []
     return personal_bests["data"]

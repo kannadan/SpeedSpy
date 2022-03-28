@@ -51,7 +51,7 @@ async def backgroundUpdateTask():
             print(getTime(), "Background update")
             users = db.getAllWhite()
             for user in users:
-                updateMember(user[1], isItMondayMyDudes())
+                updateMember(user[0], isItMondayMyDudes())
             print(getTime(), "update done")
             await asyncio.sleep(7200)
         except Exception as e:
@@ -60,13 +60,12 @@ async def backgroundUpdateTask():
 
 
 
-def updateMember(name, monday=False, shout=True):
-    user = speedrun.getUser(name)
-    if user:
-        bests = speedrun.getBest(user)
+def updateMember(userId, monday=False, shout=True):
+    if userId:
+        bests = speedrun.getBest(userId)
         if bests:
-            pb = speedrun.parsePB(bests, user["id"])
-            old = db.getUserruns(user["id"])
+            pb = speedrun.parsePB(bests, userId)
+            old = db.getUserruns(userId)
             oldids = [x[0] for x in old]
             for run in pb:
                 if run["runid"] not in oldids:
@@ -78,12 +77,12 @@ def updateMember(name, monday=False, shout=True):
                     if shout:
                         loop.create_task(announceRun(run))
                 else:
-                    for oldrun in old:
-                        if oldrun[0] == run["runid"] and oldrun[2] != run["place"] and monday:
-                            db.updaterun(run)
-                            if shout:
-                                loop.create_task(announceChange(run, oldrun[2] - run["place"]))
-                            break
+                    oldrun = next((item for item in old if item[0] == run["runid"]), None)
+                    # for oldrun in old:
+                    if monday:
+                        db.updaterun(run)
+                        if shout and oldrun[2] != run["place"]:
+                            loop.create_task(announceChange(run, oldrun[2] - run["place"]))                        
             return len(pb)
     return 0
 
@@ -148,7 +147,7 @@ async def checkUpdates(ctx):
     requestAmount = 0
     amountOfUsers = len(users)
     for user in users:
-        runs = updateMember(user[1])
+        runs = updateMember(user[0])
         requestAmount += 2 + runs
         count += 1
         if count % 10 == 0:
@@ -171,7 +170,7 @@ async def renewRuns(ctx):
         requestAmount = 0
         amountOfUsers = len(users)
         for user in users:
-            runs = updateMember(user[1], False, False)
+            runs = updateMember(user[0], False, False)
             requestAmount += 2 + runs
             count += 1
             if count % 10 == 0:
