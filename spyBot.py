@@ -52,6 +52,7 @@ async def backgroundUpdateTask():
             users = db.getAllWhite()
             count = 0
             requestAmount = 0
+            amountOfUsers = len(users)
             for user in users:
                 runs = updateMember(user[0], isItMondayMyDudes())                
                 requestAmount += 2 + runs
