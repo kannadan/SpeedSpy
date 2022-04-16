@@ -26,7 +26,7 @@ def checkMember(member):
         user = speedrun.getUser(name)
         if user:
             db.insertWhitelist(user["id"], name)
-            bests = speedrun.getBest(user)
+            bests = speedrun.getBest(user["id"])
             if bests:
                 pb = speedrun.parsePB(bests, user["id"])
                 for run in pb:
@@ -53,14 +53,18 @@ async def backgroundUpdateTask():
             count = 0
             requestAmount = 0
             amountOfUsers = len(users)
+            updatesToAnnounce = []
             for user in users:
-                runs = updateMember(user[0], isItMondayMyDudes())                
+                runs, updates = updateMember(user[0], isItMondayMyDudes())       
+                updatesToAnnounce = updatesToAnnounce + updates
                 requestAmount += 2 + runs
                 count += 1                
                 if requestAmount > 90 and count != amountOfUsers:                    
                     requestAmount = 0
                     await asyncio.sleep(30)
             print(getTime(), "update done")
+            if len(updatesToAnnounce) > 0:
+                loop.create_task(announceChanges(updatesToAnnounce))  
             await asyncio.sleep(7200)
         except Exception as e:
             print(getTime(), str(e))
@@ -69,6 +73,7 @@ async def backgroundUpdateTask():
 
 
 def updateMember(userId, monday=False, shout=True):
+    updates = []
     if userId:
         bests = speedrun.getBest(userId)
         if bests:
@@ -90,9 +95,10 @@ def updateMember(userId, monday=False, shout=True):
                     if monday:
                         db.updaterun(run)
                         if shout and oldrun[2] != run["place"]:
-                            loop.create_task(announceChange(run, oldrun[2] - run["place"]))                        
-            return len(pb)
-    return 0
+                            updates.append(getChangeString(run, oldrun[2] - run["place"]))
+                            # loop.create_task(announceChange(run, oldrun[2] - run["place"]))                        
+            return (len(pb), updates)
+    return (0, updates)
 
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
@@ -106,6 +112,25 @@ async def announceChange(run, change):
         await channel.send('{} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
     else:
         await channel.send('{} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
+
+async def announceChanges(changeList):
+    msg = ""
+    channel = bot.get_channel(CHANNEL)
+    for announcement in changeList:
+        msg = msg + announcement + "\n> \n"
+        if len(msg) > 1700:
+            await channel.send(msg.strip("\n> \n"))
+            msg = ""
+    if msg != "":
+        await channel.send(msg.strip("\n> \n"))
+
+def getChangeString(run, change):
+    name = db.getUserName(run["userid"])
+    if change > 0:
+        return '> {} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
+    else:
+        return '> {} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
+
 
 #client = discord.Client()
 bot = commands.Bot(command_prefix='/')
@@ -154,8 +179,10 @@ async def checkUpdates(ctx):
     count = 0
     requestAmount = 0
     amountOfUsers = len(users)
+    updatesToAnnounce = []
     for user in users:
-        runs = updateMember(user[0])
+        runs, updates = updateMember(user[0])
+        updatesToAnnounce = updatesToAnnounce + updates
         requestAmount += 2 + runs
         count += 1
         if count % 10 == 0:
@@ -165,6 +192,8 @@ async def checkUpdates(ctx):
             requestAmount = 0
             await asyncio.sleep(30)
     print(getTime(), "update done")
+    if len(updatesToAnnounce) > 0:
+        loop.create_task(announceChanges(updatesToAnnounce)) 
 
 @bot.command(name='drop_table', help='Drops all runs and fetches again. Will not shout')
 async def renewRuns(ctx):
@@ -178,7 +207,7 @@ async def renewRuns(ctx):
         requestAmount = 0
         amountOfUsers = len(users)
         for user in users:
-            runs = updateMember(user[0], False, False)
+            runs, _ = updateMember(user[0], False, False)
             requestAmount += 2 + runs
             count += 1
             if count % 10 == 0:
@@ -188,6 +217,8 @@ async def renewRuns(ctx):
                 requestAmount = 0
                 await asyncio.sleep(30)
         print(getTime(), "update done")
+        if len(updatesToAnnounce) > 0:
+            loop.create_task(announceChanges(updatesToAnnounce))  
     else:
         await ctx.send("You don't have rights for this function")
 
@@ -231,7 +262,7 @@ async def follow(ctx, name : str = ""):
             if len(user) != 0:
                 db.deleteBlack(name)
             await ctx.send("Will now follow {}".format(name))
-            bests = speedrun.getBest(userSr)
+            bests = speedrun.getBest(userSr["id"])
             if bests:
                 pb = speedrun.parsePB(bests, userSr["id"])
                 for run in pb:
