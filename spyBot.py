@@ -116,13 +116,14 @@ async def announceChange(run, change):
 async def announceChanges(changeList):
     msg = ""
     channel = bot.get_channel(CHANNEL)
+    print(getTime(), changeList)
     for announcement in changeList:
         msg = msg + announcement + "\n> \n"
         if len(msg) > 1700:
-            await channel.send(msg.strip("\n> \n"))
+            await channel.send(msg.rstrip("> \n"))
             msg = ""
     if msg != "":
-        await channel.send(msg.strip("\n> \n"))
+        await channel.send(msg.rstrip("> \n"))
 
 def getChangeString(run, change):
     name = db.getUserName(run["userid"])
