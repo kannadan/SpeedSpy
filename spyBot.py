@@ -6,6 +6,7 @@ import speedrun
 import db
 from datetime import datetime
 
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
@@ -15,24 +16,6 @@ loop = asyncio.get_event_loop()
 
 def getTime():
     return datetime.now()
-
-def checkMember(member):
-    if member.nick:
-        name = member.nick
-    else:
-        name = member.name
-    name = name.replace(" ", "")
-    if not db.getUser(name):
-        user = speedrun.getUser(name)
-        if user:
-            db.insertWhitelist(user["id"], name)
-            bests = speedrun.getBest(user["id"])
-            if bests:
-                pb = speedrun.parsePB(bests, user["id"])
-                for run in pb:
-                    db.insertrun(run)
-        else:
-            db.insertBlacklist(name)
 
 def isItMondayMyDudes():
     now = datetime.now()
@@ -49,14 +32,14 @@ async def backgroundUpdateTask():
     while not bot.is_closed():
         try:
             print(getTime(), "Background update")
-            users = db.getAllWhite()
+            users = db.getAllRunners()
+            amountOfUsers = len(users)
             count = 0
             requestAmount = 0
-            amountOfUsers = len(users)
             updatesToAnnounce = []
             for user in users:
-                runs, updates = updateMember(user[0], isItMondayMyDudes())       
-                updatesToAnnounce = updatesToAnnounce + updates
+                runs, updates = updateMember(user[0], isItMondayMyDudes())
+                updatesToAnnounce = updatesToAnnounce + updates                
                 requestAmount += 2 + runs
                 count += 1                
                 if requestAmount > 90 and count != amountOfUsers:                    
@@ -64,10 +47,10 @@ async def backgroundUpdateTask():
                     await asyncio.sleep(30)
             print(getTime(), "update done")
             if len(updatesToAnnounce) > 0:
-                loop.create_task(announceChanges(updatesToAnnounce))  
+                loop.create_task(announceChanges(updatesToAnnounce))
             await asyncio.sleep(7200)
         except Exception as e:
-            print(getTime(), str(e))
+            print(getTime(), "update failed", str(e))
             await asyncio.sleep(7200)
 
 
@@ -96,18 +79,22 @@ def updateMember(userId, monday=False, shout=True):
                         db.updaterun(run)
                         if shout and oldrun[2] != run["place"]:
                             updates.append(getChangeString(run, oldrun[2] - run["place"]))
-                            # loop.create_task(announceChange(run, oldrun[2] - run["place"]))                        
             return (len(pb), updates)
     return (0, updates)
 
+def replace_discord_char(text):
+    text = text.replace("*", "\*")
+    text = text.replace("_", "\_")
+    return text
+
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
-    name = db.getUserName(run["userid"])
+    name = replace_discord_char(db.getRunnerName(run["userid"]))
     await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
 
 async def announceChange(run, change):
     channel = bot.get_channel(CHANNEL)
-    name = db.getUserName(run["userid"])
+    name = replace_discord_char(db.getRunnerName(run["userid"]))
     if change > 0:
         await channel.send('{} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
     else:
@@ -133,7 +120,24 @@ def getChangeString(run, change):
         return '> {} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
 
 
-#client = discord.Client()
+async def check_silent_updates():
+    print(getTime(), "Run silent update")
+    users = db.getAllRunners()
+    count = 0
+    requestAmount = 0
+    amountOfUsers = len(users)
+    for user in users:
+        runs = updateMember(user[0], False, False)
+        requestAmount += 2 + runs
+        count += 1
+        if count % 10 == 0:
+            print(getTime(), "{}/{} members updated. Requests: {}".format(count, amountOfUsers, requestAmount))
+        if requestAmount > 90 and count != amountOfUsers:
+            print(getTime(), "Approaching rate limit. Time to sleep")
+            requestAmount = 0
+            await asyncio.sleep(30)
+    print(getTime(), "update done")
+
 bot = commands.Bot(command_prefix='/')
 
 @bot.event
@@ -146,36 +150,14 @@ async def on_ready():
         f'{bot.user} is connected to the following guild:\n'
         f'{guild.name}(id: {guild.id})'
     )
-    count = 0
-    users = guild.member_count
     print(getTime(), "guild has {} members\n".format(guild.member_count))
-    print(getTime(), "Checking speedrun.com")
-    db.createTables()
-    print(getTime(), "{}/{} members verified".format(count, users))
-    for member in guild.members:
-        checkMember(member)
-        count += 1
-        if count % 10 == 0:
-            print(getTime(), "{}/{} members verified".format(count, users))
-            await asyncio.sleep(10)
-    print(getTime(), "{}/{} members verified. Verification Done".format(count, users))
-
-@bot.event
-async def on_member_join(member):
-    print(getTime(), "checking new member")
-    checkMember(member)
-
-@bot.event
-async def on_member_update(old, member):
-    print(getTime(), "checking member update")
-    if old.nick != member.nick:
-        checkMember(member)
+    loop.create_task(check_silent_updates())
 
 
 @bot.command(name='update', help='Checks for new runs in speedrun.com')
 async def checkUpdates(ctx):
     print(getTime(), "Run update")
-    users = db.getAllWhite()
+    users = db.getAllRunners()
     await ctx.send("Will now check for new runs")
     count = 0
     requestAmount = 0
@@ -200,7 +182,7 @@ async def checkUpdates(ctx):
 async def renewRuns(ctx):
     if ctx.message.author.id == OWNER:
         print(getTime(), "Run update")
-        users = db.getAllWhite()
+        users = db.getAllRunners()
         db.dropRuns()
         db.createTables()
         await ctx.send("Will reacquire runs")
@@ -218,20 +200,19 @@ async def renewRuns(ctx):
                 requestAmount = 0
                 await asyncio.sleep(30)
         print(getTime(), "update done")
-        if len(updatesToAnnounce) > 0:
-            loop.create_task(announceChanges(updatesToAnnounce))  
     else:
         await ctx.send("You don't have rights for this function")
 
 @bot.command(name='runlist', help='/runlist <name>: lists all runs that person has. No name will list all runs on server')
 async def sendRankings(ctx, name: str = ""):
+    print(getTime(), "Run list called")
     if name:
-        users = db.getUser(name)
+        users = db.getRunner(name)
     else:
         if ctx.message.author.id != OWNER:
             await ctx.send("Needs a name")
             return
-        users = db.getAllWhite()
+        users = db.getAllRunners()
         await ctx.send("This might take a while")
     if not users or len(users[0]) == 1:
         await ctx.send("I do not know this user. Try /follow <name> to add user to followed")
@@ -252,16 +233,15 @@ async def sendRankings(ctx, name: str = ""):
 
 @bot.command(name='follow', help='/follow <name> adds that name to be followed on speedrun.com')
 async def follow(ctx, name : str = ""):
+    print(getTime(), "Add user", name)
     if not name:
         await ctx.send("You need to give a name")
         return
-    user = db.getUser(name)
+    user = db.getRunner(name)
     if not user or len(user[0]) == 1:
         userSr = speedrun.getUser(name)
         if userSr:
-            db.insertWhitelist(userSr["id"], name)
-            if len(user) != 0:
-                db.deleteBlack(name)
+            db.insertRunner(userSr["id"], name)
             await ctx.send("Will now follow {}".format(name))
             bests = speedrun.getBest(userSr["id"])
             if bests:
@@ -270,22 +250,23 @@ async def follow(ctx, name : str = ""):
                     db.insertrun(run)
         else:
             await ctx.send("Speedrun.com has no {}".format(name))
+        print(getTime(), "Added user", name)
     else:
         await ctx.send("Already following {}".format(name))
 
 @bot.command(name='unfollow', help='/unfollow <name> will stop following that guy')
 async def unfollow(ctx, name : str = ""):
+    print(getTime(), "Remoce user", name)
     if not name:
         await ctx.send("You need to give a name")
         return
-    user = db.getUser(name)
+    user = db.getRunner(name)
     if not user or len(user[0]) == 1:
         await ctx.send("I wasn't even following {}".format(name))
         return
     else:
-        user = db.getUser(name)
-        db.deleteWhite(user[0][0])
-        db.insertBlacklist(user[0][1])
+        user = db.getRunner(name)
+        db.deleteRunner(user[0][0])
         runs = db.getUserruns(user[0][0])
         for run in runs:
             db.deleterun(run[0])
@@ -303,7 +284,7 @@ async def closeBot(ctx):
 
 @bot.command(name='givgame', help='Gives random game from speedrun to run')
 async def getRandomGame(ctx):
-
+    print(getTime(), "Get random game")
     results = speedrun.getRandomGame()
     game = results[0]
     platform = results[1]
@@ -317,6 +298,6 @@ async def getRandomGame(ctx):
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
         f'{category["name"]} WR: {time}\nRunners: {len(runs)}')
 
-
+db.createTables()
 bot.loop.create_task(backgroundUpdateTask())
 bot.run(TOKEN)

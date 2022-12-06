@@ -6,12 +6,9 @@ def connectdb():
 def createTables():
     conn = connectdb()
     cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS whitelist(
+    cur.execute("""CREATE TABLE IF NOT EXISTS runners(
                    userid TEXT PRIMARY KEY,
                    name TEXT);
-                """)
-    cur.execute("""CREATE TABLE IF NOT EXISTS blacklist(
-                   name TEXT PRIMARY KEY);
                 """)
     cur.execute("""CREATE TABLE IF NOT EXISTS runs(
                    runid TEXT NOT NULL,
@@ -40,11 +37,11 @@ def dropRuns():
     conn.close()
 
 
-def insertWhitelist(id, name):
+def insertRunner(id, name):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO whitelist(userid, name)
+        cur.execute(""" INSERT INTO runners(userid, name)
                         VALUES(?, ?);""", (id, name))
     except Exception as e:
         print("Exception in _query: %s" % e)
@@ -52,17 +49,6 @@ def insertWhitelist(id, name):
         conn.commit()
         conn.close()
 
-def insertBlacklist(name):
-    conn = connectdb()
-    cur = conn.cursor()
-    try:
-        cur.execute(""" INSERT INTO blacklist(name)
-                        VALUES(?);""", (name, ))
-    except Exception as e:
-        print("Exception in _query: %s" % e)
-    if conn:
-        conn.commit()
-        conn.close()
 
 def insertrun(run):
     """
@@ -118,11 +104,11 @@ def deleterun(runid):
         conn.commit()
         conn.close()
 
-def deleteWhite(userid):
+def deleteRunner(userid):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" DELETE FROM whitelist
+        cur.execute(""" DELETE FROM runners
                         WHERE userid=? """, (userid, ) )
     except Exception as e:
         print("Exception in _query: %s" % e)
@@ -130,17 +116,6 @@ def deleteWhite(userid):
         conn.commit()
         conn.close()
 
-def deleteBlack(name):
-    conn = connectdb()
-    cur = conn.cursor()
-    try:
-        cur.execute(""" DELETE FROM blacklist
-                        WHERE name=? """, (name, ) )
-    except Exception as e:
-        print("Exception in _query: %s" % e)
-    if conn:
-        conn.commit()
-        conn.close()
 
 def getAllruns():
     conn = connectdb()
@@ -170,15 +145,12 @@ def getUserruns(userid):
     if conn:
         conn.close()
 
-def getUser(name):
+def getRunner(name):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" SELECT * FROM whitelist WHERE name=?; """, (name, ))
+        cur.execute(""" SELECT * FROM runners WHERE name=?; """, (name, ))
         result = cur.fetchall()
-        if not result:
-            cur.execute(""" SELECT * FROM blacklist WHERE name=?; """, (name, ))
-            result = cur.fetchall()
         if conn:
             conn.close()
         return result
@@ -187,11 +159,11 @@ def getUser(name):
     if conn:
         conn.close()
 
-def getUserName(userid):
+def getRunnerName(userid):
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" SELECT name FROM whitelist WHERE userid=?; """, (userid, ))
+        cur.execute(""" SELECT name FROM runners WHERE userid=?; """, (userid, ))
         result = cur.fetchone()
         if conn:
             conn.close()
@@ -204,11 +176,11 @@ def getUserName(userid):
     if conn:
         conn.close()
 
-def getAllWhite():
+def getAllRunners():
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" SELECT * FROM whitelist; """)
+        cur.execute(""" SELECT * FROM runners; """)
         result = cur.fetchall()
         if conn:
             conn.close()

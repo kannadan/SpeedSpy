@@ -5,7 +5,8 @@ services:
     env_file: 
       - .env
     volumes:
-     - .:/app
+     - ./speedrunners.db:/app/speedrunners.db
+     - ./.env:/app/.env
     command: python -u spyBot.py
 
 
