@@ -127,7 +127,7 @@ async def check_silent_updates():
     requestAmount = 0
     amountOfUsers = len(users)
     for user in users:
-        runs = updateMember(user[0], False, False)
+        runs, _ = updateMember(user[0], False, False)
         requestAmount += 2 + runs
         count += 1
         if count % 10 == 0:

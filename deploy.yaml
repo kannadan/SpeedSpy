@@ -1,34 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: SpeedSpy
+  name: speedspy
   labels:
-    app: SpeedSpy
+    app: speedspy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: SpeedSpy
+      app: speedspy
   template:
     metadata:
       labels:
-        app: SpeedSpy
+        app: speedspy
     spec:
       containers:
-        - name: SpeedSpy
-          image: vauhtijuoksu.azurecr.io/vauhtijuoksu/SpeedSpy:dev
+        - name: speedspy
+          image: vauhtijuoksu.azurecr.io/vauhtijuoksu/speedspy:dev
           imagePullPolicy: Always
           volumeMounts:
-            - name: botConfigs
-              mountPath: "/app"
+            - name: bot-configs
+              mountPath: /app
               subPath: .env
-            - name: runnerDatabase
-              mountPath: "/app"
+            - name: runner-database
+              mountPath: /app/database
       volumes:
-        - name: botConfigs
-          secret:
-            secretName: SpeedSpy-config
-        - name: runnerDatabase
+        - name: bot-configs
+          configMap:
+            name: speedspy-config
+        - name: runner-database
           hostPath:
-            path: /speedrunners.db
-            type: File
+            path: speedrunners.db
