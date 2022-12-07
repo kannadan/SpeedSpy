@@ -1,0 +1,17 @@
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: azurefile-sqlite
+provisioner: kubernetes.io/azure-file
+allowVolumeExpansion: true
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=0
+  - gid=0
+  - mfsymlinks
+  - nobrl
+  - cache=strict
+parameters:
+  skuName: Standard_LRS
