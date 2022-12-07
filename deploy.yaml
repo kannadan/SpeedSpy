@@ -14,20 +14,32 @@ spec:
       labels:
         app: speedspy
     spec:
+      initContainers:
+        # Creates the database file if it does not exist
+        # Otherwise it would be mounted as a directory in the app container
+        - name: touch-db
+          image: busybox
+          args: ['/bin/touch', '/tmp/db/speedrunners.db']
+          volumeMounts:
+            - name: runner-database
+              mountPath: /tmp/db
+              subPath: db
       containers:
         - name: speedspy
           image: vauhtijuoksu.azurecr.io/vauhtijuoksu/speedspy:dev
           imagePullPolicy: Always
+          command: ['python', 'spyBot.py']
           volumeMounts:
             - name: bot-configs
-              mountPath: /app
-              subPath: .env
+              mountPath: /app/.env
+              subPath: prod.env
             - name: runner-database
-              mountPath: /app/database
+              mountPath: /app/speedrunners.db
+              subPath: db/speedrunners.db
       volumes:
         - name: bot-configs
           configMap:
             name: speedspy-config
         - name: runner-database
-          hostPath:
-            path: speedrunners.db
+          persistentVolumeClaim:
+            claimName: speedspy-db
