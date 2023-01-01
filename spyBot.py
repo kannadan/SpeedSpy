@@ -44,8 +44,9 @@ async def backgroundUpdateTask():
                 count += 1                
                 if requestAmount > 90 and count != amountOfUsers:                    
                     requestAmount = 0
+                    print(getTime(), "Too many request, waiting 30")
                     await asyncio.sleep(30)
-            print(getTime(), "update done")
+            print(getTime(), "updates done: ", len(updatesToAnnounce))
             if len(updatesToAnnounce) > 0:
                 loop.create_task(announceChanges(updatesToAnnounce))
             await asyncio.sleep(7200)
@@ -113,7 +114,7 @@ async def announceChanges(changeList):
         await channel.send(msg.rstrip("> \n"))
 
 def getChangeString(run, change):
-    name = db.getUserName(run["userid"])
+    name = db.getRunnerName(run["userid"])
     if change > 0:
         return '> {} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
     else:
@@ -151,7 +152,7 @@ async def on_ready():
         f'{guild.name}(id: {guild.id})'
     )
     print(getTime(), "guild has {} members\n".format(guild.member_count))
-    loop.create_task(check_silent_updates())
+    # loop.create_task(check_silent_updates())
 
 
 @bot.command(name='update', help='Checks for new runs in speedrun.com')
@@ -289,14 +290,15 @@ async def getRandomGame(ctx):
     game = results[0]
     platform = results[1]
     category = results[2]
-    runs = results[3]
+    runs = results[3]["runs"]
+    weblink = results[3]["weblink"]
     time = "Ei mittään"
     if(len(runs) > 0):
         wr = runs[0]
         time = speedrun.getTimeString(wr['run']["times"]["primary_t"])
 
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
-        f'{category["name"]} WR: {time}\nRunners: {len(runs)}')
+        f'{category["name"]} WR: {time}\nRunners: {len(runs)}\n<{weblink}>')
 
 db.createTables()
 bot.loop.create_task(backgroundUpdateTask())

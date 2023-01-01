@@ -151,10 +151,10 @@ def getRandomGame():
     catRes = getRequest(caturl)
 
     catIndex = randrange(0, len(catRes["data"]))
-    leaderUrl = f'{categoryUrl}{catRes["data"][catIndex]["id"]}/records'
+    leaderUrl = f'{leaderboardurl}{bulkGame["id"]}/category/{catRes["data"][catIndex]["id"]}'
     wrRes = getRequest(leaderUrl)
 
-    return (lb["data"], plat["data"], catRes["data"][catIndex], wrRes["data"][0]["runs"])
+    return (lb["data"], plat["data"], catRes["data"][catIndex], wrRes["data"])
 
 
 if __name__ == "__main__":
