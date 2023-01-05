@@ -12,6 +12,8 @@ categoryUrl = 'https://www.speedrun.com/api/v1/categories/'
 leaderboardurl = "https://www.speedrun.com/api/v1/leaderboards/"    # ad gameid/category/catid?var-subcatvariables
 platformUrl = 'https://www.speedrun.com/api/v1/platforms/'
 
+default_wr_status = 'INAPPLICAPLE'
+
 def getTime():
     return datetime.now()
 
@@ -77,6 +79,7 @@ def parsePB(pbs, userid):
         result["totalruns"] = lbData["total"]
         result["wr"] = lbData["wr"]
         result["link"] = a["run"]["weblink"]
+        result["wrStatus"] = default_wr_status
         parsedList.append(result)
     return parsedList
 

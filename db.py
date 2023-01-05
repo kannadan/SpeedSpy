@@ -23,6 +23,7 @@ def createTables():
                    runners INT,
                    wr TEXT,
                    link TEXT,
+                   wrStatus TEXT DEFAULT 'INAPPLICAPLE',
                    PRIMARY KEY(runid, userid));
                 """)
     conn.commit()
@@ -62,17 +63,21 @@ def insertrun(run):
             catid       id of main category
             subCats     ids of subcategories in format <sub categoryid>=<sub category choice>, ...
             gameid      id of game
+            runners     Amount of runners for category
+            wr          world record time
             links       link to run
+            wrStatus
     """
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link)
-                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link, wrStatus)
+                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
                                 (run["runid"], run["userid"], run["place"],
                                  run["game"], run["category"], run["time"],
                                  run["catid"], run["subCats"], run["gameid"],
-                                 run["totalruns"], run["wr"], run["link"]))
+                                 run["totalruns"], run["wr"], run["link"], 
+                                 run["wrStatus"]))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
@@ -84,8 +89,8 @@ def updaterun(run):
     cur = conn.cursor()
     try:
         cur.execute(""" UPDATE runs
-                        SET place = ?
-                        WHERE runid=?; """, (run["place"], run["runid"]))
+                        SET place = ?, runners = ?, wr = ?, wrStatus = ?
+                        WHERE runid=?; """, (run["place"], run["totalruns"], run["wr"], run["wrStatus"], run["runid"]))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
