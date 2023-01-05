@@ -14,6 +14,11 @@ CHANNEL = int(os.getenv('DISCORD_CHANNEL'))
 OWNER = int(os.getenv('OWNER_ID'))
 loop = asyncio.get_event_loop()
 
+wr_values = {
+    "default": "INAPPLICAPLE",
+    "noted": "NOTED",
+    "1Month": "1MONTH"
+}
 def getTime():
     return datetime.now()
 
@@ -67,6 +72,9 @@ def updateMember(userId, monday=False, shout=True):
             for run in pb:
                 if run["runid"] not in oldids:
                     # print(name, run["game"], run["category"], run["place"])
+                    wr = False
+                    if(run["place"] == 1):
+                        run["wrStatus"] = wr_values["noted"]
                     for oldrun in old:
                         if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
                             db.deleterun(oldrun[0])
@@ -91,7 +99,10 @@ def replace_discord_char(text):
 async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
     name = replace_discord_char(db.getRunnerName(run["userid"]))
-    await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
+    if(run["wrStatus"] == wr_values["noted"]):
+        await channel.send('New World record!!! {} is now  the best out of {} player(s) in {} {} with a time of {}\n<{}>'.format(name, run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
+    else:  
+        await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
 
 async def announceChange(run, change):
     channel = bot.get_channel(CHANNEL)

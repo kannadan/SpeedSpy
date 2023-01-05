@@ -54,6 +54,24 @@ def getBest(userId):
     return personal_bests["data"]
 
 def parsePB(pbs, userid):
+    """
+        {
+        "place": 1,
+        "userid": 123456,
+        "runid": 789012,
+        "gameid": 135790,
+        "time": "01:23:45",
+        "game": "Super Mario Bros.",
+        "category": "Any%",
+        "catid": 13,
+        "subCats": ["Glitchless"],
+        "totalruns": 100,
+        "wr": True,
+        "link": "https://www.speedrun.com/run/abcdefg",
+        "wrStatus": "INAPPLICAPLE",
+        "verified": "2022-01-01T12:34:56Z"
+    }
+    """
     parsedList = []
 
     for a in pbs:
@@ -80,6 +98,7 @@ def parsePB(pbs, userid):
         result["wr"] = lbData["wr"]
         result["link"] = a["run"]["weblink"]
         result["wrStatus"] = default_wr_status
+        result["verified"] = a["run"]["status"]["verify-date"]
         parsedList.append(result)
     return parsedList
 
