@@ -105,7 +105,6 @@ def updateMember(userId, monday=False, shout=True):
                         shout_wr_age = True
                     elif oldrun[12] != wr_values["default"] and run["place"] == 1:
                         run["wrStatus"] = oldrun[12]
-                    print(run["place"], shout_wr_age, run["wrStatus"], isOlderThanMonth(run["verified"]))
                     # for oldrun in old:
                     if monday or shout_wr_age:
                         db.updaterun(run)
