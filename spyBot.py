@@ -5,6 +5,7 @@ import asyncio
 import speedrun
 import db
 from datetime import datetime
+from dateutil import parser
 
 
 load_dotenv()
@@ -30,6 +31,20 @@ def isItMondayMyDudes():
         return True
     else:
         return False
+
+
+def isOlderThanMonth(time_string):
+    dt = parser.parse(time_string)
+    dt = dt.replace(tzinfo=None)
+
+    now = datetime.utcnow()
+    age = now - dt
+
+    if age.days >= 30:
+        return True
+    else:
+        return False
+    
 
 async def backgroundUpdateTask():
     await bot.wait_until_ready()
@@ -82,12 +97,20 @@ def updateMember(userId, monday=False, shout=True):
                     if shout:
                         loop.create_task(announceRun(run))
                 else:
+                    # wrStatus is automatically default in runs and needs to be checked here
+                    shout_wr_age = False
                     oldrun = next((item for item in old if item[0] == run["runid"]), None)
+                    if oldrun[12] == wr_values["noted"] and isOlderThanMonth(run["verified"]) and run["place"] == 1:
+                        run["wrStatus"] = wr_values["1Month"]
+                        shout_wr_age = True
+                    elif oldrun[12] != wr_values["default"] and run["place"] == 1:
+                        run["wrStatus"] = oldrun[12]
+                    print(run["place"], shout_wr_age, run["wrStatus"], isOlderThanMonth(run["verified"]))
                     # for oldrun in old:
-                    if monday:
+                    if monday or shout_wr_age:
                         db.updaterun(run)
-                        if shout and oldrun[2] != run["place"]:
-                            updates.append(getChangeString(run, oldrun[2] - run["place"]))
+                        if shout and (oldrun[2] != run["place"] or shout_wr_age):
+                            updates.append(getChangeString(run, oldrun[2] - run["place"], oldrun[2]))
             return (len(pb), updates)
     return (0, updates)
 
@@ -100,22 +123,13 @@ async def announceRun(run):
     channel = bot.get_channel(CHANNEL)
     name = replace_discord_char(db.getRunnerName(run["userid"]))
     if(run["wrStatus"] == wr_values["noted"]):
-        await channel.send('New World record!!! {} is now  the best out of {} player(s) in {} {} with a time of {}\n<{}>'.format(name, run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
+        await channel.send(':first_place:New World record!!! {} is now  the best out of {} player(s) in {} {} with a time of {}\n<{}>'.format(name, run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
     else:  
         await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
-
-async def announceChange(run, change):
-    channel = bot.get_channel(CHANNEL)
-    name = replace_discord_char(db.getRunnerName(run["userid"]))
-    if change > 0:
-        await channel.send('{} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
-    else:
-        await channel.send('{} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change))
 
 async def announceChanges(changeList):
     msg = ""
     channel = bot.get_channel(CHANNEL)
-    print(getTime(), changeList)
     for announcement in changeList:
         msg = msg + announcement + "\n> \n"
         if len(msg) > 1700:
@@ -124,12 +138,17 @@ async def announceChanges(changeList):
     if msg != "":
         await channel.send(msg.rstrip("> \n"))
 
-def getChangeString(run, change):
+def getChangeString(run, change, old_place):
     name = db.getRunnerName(run["userid"])
-    if change > 0:
+    if change == 0 and run["wrStatus"] == wr_values["1Month"]:
+        return '> {} has held wr for over a month in {} {}. Congrats! :trophy:'.format(name, run["game"], run["category"])
+    elif change > 0:
         return '> {} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
     else:
-        return '> {} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
+        if old_place == 1:
+            return '> {} is no longer world champ in {} {}. New placement is {}/{}.'.format(name, run["game"], run["category"], run["place"], run["totalruns"])
+        else:    
+            return '> {} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
 
 
 async def check_silent_updates():
@@ -202,7 +221,7 @@ async def renewRuns(ctx):
         requestAmount = 0
         amountOfUsers = len(users)
         for user in users:
-            runs, _ = updateMember(user[0], False, False)
+            runs, _ = updateMember(user[0])
             requestAmount += 2 + runs
             count += 1
             if count % 10 == 0:
