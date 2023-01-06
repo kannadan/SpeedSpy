@@ -24,6 +24,7 @@ def createTables():
                    wr TEXT,
                    link TEXT,
                    wrStatus TEXT DEFAULT 'INAPPLICAPLE',
+                   verified,
                    PRIMARY KEY(runid, userid));
                 """)
     conn.commit()
@@ -66,18 +67,19 @@ def insertrun(run):
             runners     Amount of runners for category
             wr          world record time
             links       link to run
-            wrStatus
+            wrStatus    for meta competition
+            verified    Time run was verified. If wr, time when first wr was verified
     """
     conn = connectdb()
     cur = conn.cursor()
     try:
-        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link, wrStatus)
-                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+        cur.execute(""" INSERT INTO runs(runid, userid, place, game, category, time, categoryid, subCategories, gameid, runners, wr, link, wrStatus, verified)
+                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
                                 (run["runid"], run["userid"], run["place"],
                                  run["game"], run["category"], run["time"],
                                  run["catid"], run["subCats"], run["gameid"],
                                  run["totalruns"], run["wr"], run["link"], 
-                                 run["wrStatus"]))
+                                 run["wrStatus"], run["verified"]))
     except Exception as e:
         print("Exception in _query: %s" % e)
     if conn:
@@ -127,6 +129,20 @@ def getAllruns():
     cur = conn.cursor()
     try:
         cur.execute(""" SELECT * FROM runs; """)
+        result = cur.fetchall()
+        if conn:
+            conn.close()
+        return result
+    except Exception as e:
+        print("Exception in _query: %s" % e)
+    if conn:
+        conn.close()
+
+def getAllMetaruns():
+    conn = connectdb()
+    cur = conn.cursor()
+    try:
+        cur.execute(""" SELECT * FROM runs WHERE wrStatus <> 'INAPPLICAPLE' ORDER BY userid ASC; """)
         result = cur.fetchall()
         if conn:
             conn.close()

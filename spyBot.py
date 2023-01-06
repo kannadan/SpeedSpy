@@ -32,7 +32,7 @@ def isItMondayMyDudes():
     else:
         return False
 
-
+# changed to 25 days but too lazy think of a new name
 def isOlderThanMonth(time_string):
     dt = parser.parse(time_string)
     dt = dt.replace(tzinfo=None)
@@ -40,11 +40,19 @@ def isOlderThanMonth(time_string):
     now = datetime.utcnow()
     age = now - dt
 
-    if age.days >= 30:
+    if age.days >= 25:
         return True
     else:
         return False
-    
+
+def getDays(time_string):
+    dt = parser.parse(time_string)
+    dt = dt.replace(tzinfo=None)
+
+    now = datetime.utcnow()
+    age = now - dt
+
+    return age.days
 
 async def backgroundUpdateTask():
     await bot.wait_until_ready()
@@ -92,6 +100,8 @@ def updateMember(userId, monday=False, shout=True):
                         run["wrStatus"] = wr_values["noted"]
                     for oldrun in old:
                         if oldrun[3] == run["game"] and oldrun[4] == run["category"]:
+                            if oldrun[2] == 1 and run["place"] == 1 and oldrun[12] != wr_values["default"]:
+                                run["verified"] = oldrun[13]
                             db.deleterun(oldrun[0])
                     db.insertrun(run)
                     if shout:
@@ -140,7 +150,7 @@ async def announceChanges(changeList):
 def getChangeString(run, change, old_place):
     name = db.getRunnerName(run["userid"])
     if change == 0 and run["wrStatus"] == wr_values["1Month"]:
-        return '> {} has held wr for over a month in {} {}. Congrats! :trophy:'.format(name, run["game"], run["category"])
+        return '> {} has held wr for over 25 days in {} {}. Congrats! :trophy:'.format(name, run["game"], run["category"])
     elif change > 0:
         return '> {} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
     else:
@@ -328,6 +338,35 @@ async def getRandomGame(ctx):
 
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
         f'{category["name"]} WR: {time}\nRunners: {len(runs)}\n<{weblink}>')
+
+@bot.command(name='meta', help='Returns players who have wrs in meta competition')
+async def getRandomGame(ctx):
+    print(getTime(), "Get meta runs")
+    runs = db.getAllMetaruns()
+    if(len(runs) > 0):
+        messages = []
+        currentId = runs[0][1]
+        name = db.getRunnerName(currentId)
+        messages.append(f'**{name}**')
+        for run in runs:
+            if run[1] != currentId:
+                currentId = run[1]
+                name = db.getRunnerName(currentId)
+                messages.append(f'**{name}**')
+            days = "unknown"
+            if run[13] is not None:
+                days = getDays(run[13])
+            messages.append('> {} {} with time of {}. {} runners. Held for {} days'.format(run[3], run[4], run[5], run[9], days))
+        msg = ""
+        for message in messages:
+            msg = msg + message + "\n"
+            if len(msg) > 1700:
+                await ctx.send(msg.rstrip("> \n"))
+                msg = ""
+        if msg != "":
+            await ctx.send(msg.rstrip("> \n"))
+    else:
+        await ctx.send("No records yet")
 
 db.createTables()
 bot.loop.create_task(backgroundUpdateTask())
