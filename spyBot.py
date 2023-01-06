@@ -354,7 +354,7 @@ async def getRandomGame(ctx):
                 name = db.getRunnerName(currentId)
                 messages.append(f'**{name}**')
             days = "unknown"
-            if run[13] is not None:
+            if len(run) == 14:
                 days = getDays(run[13])
             messages.append('> {} {} with time of {}. {} runners. Held for {} days'.format(run[3], run[4], run[5], run[9], days))
         msg = ""
