@@ -148,7 +148,7 @@ async def announceChanges(changeList):
         await channel.send(msg.rstrip("> \n"))
 
 def getChangeString(run, change, old_place):
-    name = db.getRunnerName(run["userid"])
+    name = replace_discord_char(db.getRunnerName(run["userid"]))
     if change == 0 and run["wrStatus"] == wr_values["1Month"]:
         return '> {} has held wr for over 25 days in {} {}. Congrats! :trophy:'.format(name, run["game"], run["category"])
     elif change > 0:
@@ -261,7 +261,7 @@ async def sendRankings(ctx, name: str = ""):
     for user in users:
         runs = db.getUserruns(user[0])
         if runs:
-            msg = msg + "**{}**\n".format(user[1])
+            msg = msg + "**{}**\n".format(replace_discord_char(user[1]))
         for run in runs:
             #msg = msg + "> Rank {}/{}, ({}) on {} {}\n> WR {}\n".format(run[2], run[9], run[5], run[3], run[4], run[10])
             msg = msg + "> {} {}\n> \tRank {}/{}, ({})\n> \tWR {}\n".format(run[3], run[4], run[2], run[9], run[5], run[10])
@@ -346,12 +346,12 @@ async def getRandomGame(ctx):
     if(len(runs) > 0):
         messages = []
         currentId = runs[0][1]
-        name = db.getRunnerName(currentId)
+        name = replace_discord_char(db.getRunnerName(currentId))
         messages.append(f'**{name}**')
         for run in runs:
             if run[1] != currentId:
                 currentId = run[1]
-                name = db.getRunnerName(currentId)
+                name = replace_discord_char(db.getRunnerName(currentId))
                 messages.append(f'**{name}**')
             days = "unknown"
             if len(run) == 14:
