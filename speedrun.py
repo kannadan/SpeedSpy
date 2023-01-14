@@ -47,6 +47,15 @@ def getUser(username):
             return user["data"][0]
     return None
 
+def getUserById(id):
+
+    user = getRequest(usersUrl + "/" + id)
+    if user == None:
+        return None
+    if user["data"]:
+        return user["data"]
+    return None
+
 def getBest(userId):
     personal_bests = getRequest(usersUrl + "/" + userId + "/personal-bests?embed=game,category.variables")
     if personal_bests is None:

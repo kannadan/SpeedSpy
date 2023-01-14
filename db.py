@@ -51,6 +51,18 @@ def insertRunner(id, name):
         conn.commit()
         conn.close()
 
+def updateRunner(id, name):
+    conn = connectdb()
+    cur = conn.cursor()
+    try:
+        cur.execute(""" UPDATE runners
+                        SET name = ?
+                        WHERE userid=?; """, (name, id))
+    except Exception as e:
+        print("Exception in _query: %s" % e)
+    if conn:
+        conn.commit()
+        conn.close()
 
 def insertrun(run):
     """

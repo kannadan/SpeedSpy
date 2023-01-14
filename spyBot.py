@@ -92,7 +92,7 @@ def updateMember(userId, monday=False, shout=True):
             oldids = [x[0] for x in old]
             for run in pb:
                 if run["runid"] not in oldids:
-                    category_runs = filter(lambda item: item["game"] == run["game"] and item["category"] == run["category"], pb)
+                    category_runs = list(filter(lambda item: item["game"] == run["game"] and item["category"] == run["category"], pb))
                     if(len(category_runs) > 1):
                         latest = max(category_runs, key=lambda obj: obj['verified'])
                         if(latest['verified'] != run["verified"]):
@@ -369,6 +369,21 @@ async def getRandomGame(ctx):
             await ctx.send(msg.rstrip("> \n"))
     else:
         await ctx.send("No records yet")
+
+@bot.command(name='update_runners', help='Updated usernames of registered runners')
+async def updateRunners(ctx):
+    print(getTime(), "Update users")
+    users = db.getAllRunners()
+    requestAmount = 0
+    for user in users:
+        newUser = speedrun.getUserById(user[0])
+        requestAmount += 1
+        db.updateRunner(newUser['id'], newUser['names']['international'])
+        if requestAmount > 90:                    
+            requestAmount = 0
+            print(getTime(), "Too many request, waiting 30")
+            await asyncio.sleep(30)
+
 
 db.createTables()
 bot.loop.create_task(backgroundUpdateTask())
