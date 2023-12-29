@@ -57,7 +57,7 @@ def getUserById(id):
     return None
 
 def getBest(userId):
-    personal_bests = getRequest(usersUrl + "/" + userId + "/personal-bests?embed=game,category.variables")
+    personal_bests = getRequest(usersUrl + "/" + str(userId) + "/personal-bests?embed=game,category.variables")
     if personal_bests is None:
         return []
     return personal_bests["data"]
@@ -133,7 +133,11 @@ def getCategories(run, category):
             return None
         for d in variables["data"]:
             if d["is-subcategory"]:
-                ctext = ctext + ", " + d["values"]["values"][run["run"]["values"][d["id"]]]["label"]  #this json is nightmarish. d ->value->value->a variable id -> that id's label
+                try:
+                    ctext = ctext + ", " + d["values"]["values"][run["run"]["values"][d["id"]]]["label"]  #this json is nightmarish. d ->value->value->a variable id -> that id's label
+                except:
+                    print(getTime(), "Error parsing subcategory", d["id"], run["run"]["values"], run["run"]["links"][0])
+                    continue
                 if subs:
                     subs = subs + "," + d["id"] + "=" + run["run"]["values"][d["id"]]
                 else:
