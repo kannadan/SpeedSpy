@@ -100,7 +100,7 @@ def parsePB(pbs, userid):
         result["category"] = catData["ctext"]
         result["catid"] = catData["id"]
         result["subCats"] = catData["subs"]
-        lbData = getLeaderboardData(result["gameid"], catData["id"], catData["subs"])
+        lbData = getLeaderboardData(result["gameid"], catData["id"], catData["subs"], result["runid"])
         if lbData is None:
             continue
         result["totalruns"] = lbData["total"]
@@ -146,7 +146,7 @@ def getCategories(run, category):
     result["subs"] = subs
     return result
 
-def getLeaderboardData(gameid, catid, subcats):
+def getLeaderboardData(gameid, catid, subcats, run_id):
     """
     return number of players in category, WR time
     """
@@ -158,9 +158,18 @@ def getLeaderboardData(gameid, catid, subcats):
     lb = getRequest(url)
     if lb is None:
         return None
+    if is_run_in_leaderboard(lb, run_id) is False:
+        print(getTime(), "Run not in leaderboard", run_id, url)
+        return None
     total = len(lb["data"]["runs"])
     wr = getTimeString(lb["data"]["runs"][0]["run"]["times"]["primary_t"])
     return {"total": total, "wr": wr}
+
+def is_run_in_leaderboard(leaderboard, run_id):
+    for run in leaderboard["data"]["runs"]:
+        if run["run"]["id"] == run_id:
+            return True
+    return False
 
 def getRandomGame():
     offset = randrange(0,25000)

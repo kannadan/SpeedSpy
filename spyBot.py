@@ -71,7 +71,7 @@ async def backgroundUpdateTask():
                 if requestAmount > 90 and count != amountOfUsers:                    
                     requestAmount = 0
                     print(getTime(), "Too many request, waiting 30")
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(50)
             print(getTime(), "updates done: ", len(updatesToAnnounce))
             if len(updatesToAnnounce) > 0:
                 loop.create_task(announceChanges(updatesToAnnounce))
@@ -177,7 +177,7 @@ async def check_silent_updates():
         if requestAmount > 90 and count != amountOfUsers:
             print(getTime(), "Approaching rate limit. Time to sleep")
             requestAmount = 0
-            await asyncio.sleep(30)
+            await asyncio.sleep(50)
     print(getTime(), "update done")
 
 bot = commands.Bot(command_prefix='/')
@@ -215,7 +215,7 @@ async def checkUpdates(ctx):
         if requestAmount > 90 and count != amountOfUsers:
             print(getTime(), "Approaching rate limit. Time to sleep")
             requestAmount = 0
-            await asyncio.sleep(30)
+            await asyncio.sleep(50)
     print(getTime(), "update done")
     if len(updatesToAnnounce) > 0:
         loop.create_task(announceChanges(updatesToAnnounce)) 
@@ -240,7 +240,7 @@ async def renewRuns(ctx):
             if requestAmount > 90 and count != amountOfUsers:
                 print(getTime(), "Approaching rate limit. Time to sleep")
                 requestAmount = 0
-                await asyncio.sleep(30)
+                await asyncio.sleep(50)
         print(getTime(), "update done")
     else:
         await ctx.send("You don't have rights for this function")
@@ -382,7 +382,7 @@ async def updateRunners(ctx):
         if requestAmount > 90:                    
             requestAmount = 0
             print(getTime(), "Too many request, waiting 30")
-            await asyncio.sleep(30)
+            await asyncio.sleep(50)
 
 
 db.createTables()
