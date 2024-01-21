@@ -334,9 +334,12 @@ async def closeBot(ctx):
         await ctx.send("I'm sorry {}. I'm afraid I can't do that. ".format(ctx.message.author.name))
 
 @bot.command(name='givgame', help='Gives random game from speedrun to run')
-async def getRandomGame(ctx):
+async def getRandomGame(ctx, platform : str = None):
     print(getTime(), "Get random game")
-    results = speedrun.getRandomGame()
+    results = speedrun.getRandomGame(platform)
+    if(results == None):
+        await ctx.send("No game matches the platform")
+        return
     game = results[0]
     platform = results[1]
     category = results[2]

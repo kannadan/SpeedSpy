@@ -1,9 +1,11 @@
 import json
+import random
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
 from dateutil.relativedelta import relativedelta
 from random import randrange
 from datetime import datetime
+import json
 
 
 usersUrl = 'https://www.speedrun.com/api/v1/users'
@@ -171,9 +173,17 @@ def is_run_in_leaderboard(leaderboard, run_id):
             return True
     return False
 
-def getRandomGame():
+def getRandomGame(platform=None):
     offset = randrange(0,25000)
     url = f'{gamesUrl[:-1]}?offset={offset}&_bulk=yes'
+    if platform:
+        platforms = getMatchingPlatforms(platform)
+        if platforms:
+            platform = random.choice(platforms)
+            url += f'&platform={platform["id"]}'
+        else:
+            return None
+        
     lb =  getRequest(url)
     if(len(lb["data"]) == 0):
         url = lb["pagination"]["links"][0]["uri"]
@@ -199,6 +209,15 @@ def getRandomGame():
     wrRes = getRequest(leaderUrl)
 
     return (lb["data"], plat["data"], catRes["data"][catIndex], wrRes["data"])
+
+def getMatchingPlatforms(platform_name):
+    with open('platforms.json') as f:
+        platforms = json.load(f)
+    matching_platforms = list(filter(lambda platform: platform_name.lower() in platform['name'].lower(), platforms))
+    if platform_name == 'pc':
+        matching_platforms = list(filter(lambda platform: platform_name.lower() == platform['name'].lower(), matching_platforms))
+    return matching_platforms
+
 
 
 if __name__ == "__main__":
