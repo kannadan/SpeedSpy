@@ -27,7 +27,7 @@ def isItMondayMyDudes():
     now = datetime.now()
     weekday = now.weekday()
     # if weekday == 0 and now.hour >= 11 and now.hour < 13:
-    if now.hour >= 11 and now.hour < 13:
+    if now.hour >= 11 and now.hour < 14:
         return True
     else:
         return False
@@ -63,8 +63,9 @@ async def backgroundUpdateTask():
             count = 0
             requestAmount = 0
             updatesToAnnounce = []
+            monday = isItMondayMyDudes()
             for user in users:
-                runs, updates = updateMember(user[0], isItMondayMyDudes())
+                runs, updates = updateMember(user[0], monday)
                 updatesToAnnounce = updatesToAnnounce + updates                
                 requestAmount += 2 + runs
                 count += 1                
@@ -206,7 +207,7 @@ async def checkUpdates(ctx):
     amountOfUsers = len(users)
     updatesToAnnounce = []
     for user in users:
-        runs, updates = updateMember(user[0])
+        runs, updates = updateMember(user[0], True)
         updatesToAnnounce = updatesToAnnounce + updates
         requestAmount += 2 + runs
         count += 1
