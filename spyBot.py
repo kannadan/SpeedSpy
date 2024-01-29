@@ -6,6 +6,7 @@ import speedrun
 import db
 from datetime import datetime
 from dateutil import parser
+import sheets
 
 
 load_dotenv()
@@ -98,7 +99,6 @@ def updateMember(userId, monday=False, shout=True):
                         latest = max(category_runs, key=lambda obj: obj['verified'])
                         if(latest['verified'] != run["verified"]):
                             continue
-                    wr = False
                     if(run["place"] == 1):
                         run["wrStatus"] = wr_values["noted"]
                     for oldrun in old:
@@ -136,6 +136,12 @@ async def announceRun(run):
     name = replace_discord_char(db.getRunnerName(run["userid"]))
     if(run["wrStatus"] == wr_values["noted"]):
         await channel.send(':first_place:New World record!!! {} is now  the best out of {} player(s) in {} {} with a time of {}\n<{}>'.format(name, run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
+        list_of_values = (run["runid"], run["userid"], run["place"],
+                                 run["game"], run["category"], run["time"],
+                                 run["catid"], run["subCats"], run["gameid"],
+                                 run["totalruns"], run["wr"], run["link"], 
+                                 run["wrStatus"], run["verified"])
+        sheets.write_to_sheet(list_of_values)
     else:  
         await channel.send('New run! {} is now rank {}/{} in {} {} with a time of {}\n<{}>'.format(name, run["place"], run["totalruns"], run["game"], run["category"], run["time"], run["link"]))
 
@@ -158,6 +164,8 @@ def getChangeString(run, change, old_place):
         return '> {} has risen to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)
     else:
         if old_place == 1:
+            list_of_values = (run["runid"], 'MENNYT MESTARI')
+            sheets.write_to_sheet(list_of_values)
             return '> {} is no longer world champ in {} {}. New placement is {}/{}.'.format(name, run["game"], run["category"], run["place"], run["totalruns"])
         else:    
             return '> {} has dropped to rank {}/{} in {} {}. Changed {} place(s)'.format(name, run["place"], run["totalruns"], run["game"], run["category"], change)

@@ -36,6 +36,8 @@ spec:
             - name: runner-database
               mountPath: /app/speedrunners.db
               subPath: db/speedrunners.db
+            - name: meta-credentials-volume  # Add this line
+              mountPath: /app/credentials.json  # Add this line
       volumes:
         - name: bot-configs
           configMap:
@@ -43,3 +45,6 @@ spec:
         - name: runner-database
           persistentVolumeClaim:
             claimName: speedspy-db
+        - name: meta-credentials-volume 
+          secret:
+            secretName: meta-credentials
