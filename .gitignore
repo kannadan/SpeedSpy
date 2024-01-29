@@ -136,4 +136,4 @@ dmypy.json
 
 #other
 .flake8
-credentials.json
+credentials/*

@@ -36,8 +36,8 @@ spec:
             - name: runner-database
               mountPath: /app/speedrunners.db
               subPath: db/speedrunners.db
-            - name: meta-credentials-volume  # Add this line
-              mountPath: /app/credentials.json  # Add this line
+            - name: meta-credentials-volume  
+              mountPath: /app/credentials
       volumes:
         - name: bot-configs
           configMap:

@@ -20,7 +20,7 @@ az login
 Install oauth secret. Needs to be run only once
 ```shell
 az aks get-credentials --name vauhtijuoksu --resource-group Vauhtijuoksu-Azure-Sponsorship
-kubectl create secret generic speedspy-token --from-file secret/oauth_token.json
+kubectl create secret generic meta-credentials --from-file credentials.json
 ```
 
 ### Commands

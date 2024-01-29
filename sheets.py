@@ -5,7 +5,7 @@ import db
 scope = ['https://www.googleapis.com/auth/spreadsheets']
 
 # Add your service account file
-creds = Credentials.from_service_account_file('credentials.json', scopes=scope)
+creds = Credentials.from_service_account_file('./credentials/credentials.json', scopes=scope)
 
 # Authorize the clientsheet 
 

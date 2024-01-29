@@ -2,3 +2,5 @@ discord.py==1.7.3
 discord==1.0.1
 python-dotenv==0.15.0
 python_dateutil==2.8.1
+gspread==6.0.0
+google-auth==2.18.0
