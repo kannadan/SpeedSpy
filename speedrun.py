@@ -174,20 +174,35 @@ def is_run_in_leaderboard(leaderboard, run_id):
     return False
 
 def getRandomGame(platform=None):
-    offset = randrange(0,25000)
-    url = f'{gamesUrl[:-1]}?offset={offset}&_bulk=yes'
+    offset = 0
+    url = f'{gamesUrl[:-1]}'
     if platform:
         platforms = getMatchingPlatforms(platform)
         if platforms:
             platform = random.choice(platforms)
-            url += f'&platform={platform["id"]}'
+            offset = randrange(0, 4000)
+            url = f'{gamesUrl[:-1]}?offset={offset}&platform={platform["id"]}&max=200'
         else:
             return None
+    else:
+        offset = randrange(0,38000)
+        url = f'{gamesUrl[:-1]}?offset={offset}&_bulk=yes&max=300'
         
     lb =  getRequest(url)
-    if(len(lb["data"]) == 0):
+    calls = 3
+    endOfList = len(lb["data"]) == 0
+    while len(lb["data"]) == 0:
         url = lb["pagination"]["links"][0]["uri"]
         lb = getRequest(url)
+        calls += 1
+        if calls % 40 == 0:
+            return None
+    if endOfList:
+        offset = randrange(0, lb["pagination"]["offset"] + lb["pagination"]["size"])
+        url = f'{gamesUrl[:-1]}?offset={offset}&platform={platform["id"]}&max=200'
+        lb = getRequest(url)
+        calls += 1
+
     games = len(lb["data"])
     if(games == 0):
         return 0
@@ -195,27 +210,33 @@ def getRandomGame(platform=None):
     url = f'{gamesUrl}{bulkGame["id"]}'
     lb = getRequest(url)
 
-    platforms = lb["data"]["platforms"]
-    plat = 0
-    if(len(platforms) > 0):
+    if not platform:
+        platforms = lb["data"]["platforms"]
         pUrl = f'{platformUrl}{platforms[0]}'
-        plat = getRequest(pUrl)
+        platform = getRequest(pUrl)["data"]
 
     caturl = url + '/categories'
     catRes = getRequest(caturl)
 
-    catIndex = randrange(0, len(catRes["data"]))
+    catIndex = 0
     leaderUrl = f'{leaderboardurl}{bulkGame["id"]}/category/{catRes["data"][catIndex]["id"]}'
     wrRes = getRequest(leaderUrl)
 
-    return (lb["data"], plat["data"], catRes["data"][catIndex], wrRes["data"])
+    try:
+        return (lb["data"], platform, catRes["data"][catIndex], wrRes["data"])
+    except:
+        print(getTime(), "Error getting game data")
+        return None
 
 def getMatchingPlatforms(platform_name):
-    with open('platforms.json') as f:
-        platforms = json.load(f)
-    matching_platforms = list(filter(lambda platform: platform_name.lower() in platform['name'].lower(), platforms))
-    if platform_name == 'pc':
-        matching_platforms = list(filter(lambda platform: platform_name.lower() == platform['name'].lower(), matching_platforms))
+    platforms = []
+    platfomRes = getRequest(f'{platformUrl[:-1]}?max=200')
+    if platfomRes['pagination']['links'][0]['rel'] == 'next':
+        platforms = platfomRes['data']
+        while platfomRes['pagination']['links'][0]['rel'] == 'next':
+            platfomRes = getRequest(platfomRes['pagination']['links'][0]['uri'])
+            platforms += platfomRes['data']
+    matching_platforms = list(filter(lambda platform: platform_name.lower() == platform['name'].lower(), platforms))
     return matching_platforms
 
 

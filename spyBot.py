@@ -333,12 +333,14 @@ async def closeBot(ctx):
     else:
         await ctx.send("I'm sorry {}. I'm afraid I can't do that. ".format(ctx.message.author.name))
 
-@bot.command(name='givgame', help='Gives random game from speedrun to run')
-async def getRandomGame(ctx, platform : str = None):
+@bot.command(name='givgame', help='Gives random game from speedrun to run. Add platform to get game from that platform')
+async def getRandomGame(ctx, platform : str = None, *args):
     print(getTime(), "Get random game")
+    if len(args) > 0:
+        platform = platform + " " + " ".join(args)
     results = speedrun.getRandomGame(platform)
     if(results == None):
-        await ctx.send("No game matches the platform")
+        await ctx.send("No game matches the platform or other error happened")
         return
     game = results[0]
     platform = results[1]
@@ -352,6 +354,10 @@ async def getRandomGame(ctx, platform : str = None):
 
     await ctx.send(f'{game["names"]["international"]} ({game["released"]}) {platform["name"]}\n' + \
         f'{category["name"]} WR: {time}\nRunners: {len(runs)}\n<{weblink}>')
+    
+@bot.command(name='platforms', help='Link to speedrun.com platforms')
+async def getPlatforms(ctx):
+    await ctx.send("find all platforms at: https://www.speedrun.com/api/v1/platforms?max=200")
 
 @bot.command(name='meta', help='Returns players who have wrs in meta competition')
 async def getRandomGame(ctx):
